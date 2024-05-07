@@ -1,0 +1,231 @@
+---
+title: "STAT-427/627 Homework 7"
+subtitle: "Name:Roland Abi Course: STA 627"
+number-sections: true
+format:
+  html:
+    toc: false
+    toc-depth: 1
+    embed-resources: true
+---
+
+Include the work done by hand as part of your response as either embedded images using `![](mypath/myimage.png)`, or as text/LaTex and code for calculations.
+
+# Basses and Sopranos
+
+An acoustic studio needs to estimate the range of voice *fundamental* frequencies an adult singer can produce.
+
+A sample of $n = 10$ recordings contains frequencies 92, 110, 127, 127, 162, 180, 184, 205, 240, 244.
+
+\(a\) Manually compute (by hand) the jackknife estimator of the population highest fundamental frequency of a human voice.
+
+\(b\) Manually compute (by hand) the jackknife estimator of the population lowest fundamental frequency of a human voice.
+
+![](images/Q1.jpg){fig-align="center" width="488"}
+
+\(c\) Compare your results in (a) and (b) with the natural range of human voice fundamental frequencies as discussed in sources such as [Audio Oddities: Frequency Ranges of Male, Female and Children's Voices](https://www.axiomaudio.com/blog/audio-oddities-frequency-ranges-of-male-female-and-childrens-voices/).
+
+From the result obtained, we observed that the estimate (248Hz) for the highest fundamental frequency of the human voice is within the range of a woman's speaking voice.
+While the Jackknife estimate (76Hz) for the lowest fundamental frequency fo the human voice, is greater than that of a male with very deep bass voice (65Hz) but less than the average man's speaking voice which ranges between 85Hz to 155Hz.
+
+\(d\) (Stat-627 only) Let's generalize the results.
+Assume a sample $X_1,\ldots,X_n$ of size $n$, where $X_1,X_2$ are the smallest two observations, and $X_{n−1}, X_n$ are the largest two.
+
+-   Derive equations for the jackknife estimators of the population maximum and then for the population minimum.
+
+$\max_{jk} = \frac{n-1}{n} \cdot \max(X_{n-1}, X_{n})$
+
+$\min_{jk} = \frac{n-1}{n} \cdot \min(X_{1}, X_{2})$
+
+\(e\) In a sentence or two, compare your bias correction in (d) with the formula the statisticians proposed in the Guardian article [Gavyn Davies does the maths: How a statistical formula won the war](https://www.theguardian.com/world/2006/jul/20/secondworldwar.tvandradio).
+
+The jackknife estimators of the population maximum and minimum involves adjusting the sample size by subtracting 1 from the sample size.
+This correction ensures that we estimate the population parameters based on a sample rather than the entire population.
+
+# Comparing Estimators using Bootstrap
+
+One needs to estimate $\theta$,the frequency of days with **0 traffic accidents** on a certain highway.
+Data are collected over 60 days.
+There are 35 days with 0 accidents, 20 days with 1 accident, and 5 days with 2 accidents.
+
+-   Statistician A estimates $\theta$ with a sample proportion $\hat{p} = 35/60 = 0.5833333$ as if it were a Bernoulli distribution.
+-   Statistician B argues this method does not distinguish between the days with 1 accident and the days with 2 accidents, losing some valuable information. She suggests modeling the number of accidents per day, $X$, by a [Poisson distribution](https://en.wikipedia.org/wiki/Poisson_distribution) with parameter $\lambda$ where $\theta = P(X = 0) = e^{-\lambda}$.
+    -   She estimates $\lambda$ with $\hat{\lambda} = \bar{X}$.
+    -   Then $\hat{\theta} = e^{-\hat{\lambda}}$. However, this estimator is biased.
+
+(a) Given Statistician A's estimator is the sample proportion of days with 0 accidents, compute the jackknife estimator, $\hat{p}_{JK}$, by hand.
+    Since there are only two possible values you can simplify instead of calculating 60 individual estimates.
+
+(b) Estimate the bias of the original $\hat{p}$ by hand.
+    Explain the result.
+
+(c) Given Statistician B's estimator, $\hat{\theta}= e^{-\hat{\lambda}}$, calculate the jackknife estimator $\hat{\theta}_{JK}$ by hand.
+
+(d) Compute the jackknife estimate of the bias of $\hat{\theta}$ by hand.
+
+    ![](images/Q2-01.jpg){width="552"}
+
+(e) We now have three competing estimators: Statistician A's $\hat{p}$,which is unbiased (no need for a jackknife version), Statistician B's original $\hat{\theta}$ ,which is biased, and Statistician B's jackknife estimator $\hat{\theta}_{JK}$ which is less biased.
+    We want to compare them for bias and their standard deviations.
+
+-   Create a vector of the data as follows:
+
+```{r}
+X <- c(rep(0, 35), rep(1, 20), rep(2, 5))
+```
+
+-   Define three functions with two arguments, one for each estimator `Phat()`, `Thetahat()`, and `ThetaJK()`.
+    -   You will need a for-loop inside the `ThetaJK()` function.
+    -   You can use your function for `Thetahat()` as part of `ThetaJK()`.
+
+```{r}
+library(boot)
+Phat <- function(X, sample){
+  return(mean(X[sample]==0))
+}
+
+Thetahat <- function(X, sample){
+  return(exp(-mean(X[sample])))
+}
+
+ThetaJK = function(X, sample){
+  n = length(X)
+  Pi = rep(0,n)                                         
+  for (i in 1:n){Pi[i] = Thetahat(X[sample],-i)}    # Leave one out
+  return(n*Thetahat(X[sample],) - (n-1)*mean(Pi))}  # Jackknife formula
+```
+
+-   Use bootstrap (code) with each function for a minimum of 50,000 samples and save the results. You can use `broom::tidy()` to summarize the each estimators' results in a data frame and then save.
+-   Use seed 123 each time.
+-   You can set a code chunk option for `#| cache: true` to reduce time to render.
+
+```{r}
+#| cache: true
+set.seed(123)
+t_Phat <- broom::tidy(boot(X, Phat, R=50000))
+t_Phat
+
+t_Thetahat <- broom::tidy(boot(X, Thetahat, R=50000))
+t_Thetahat
+
+t_ThetaJK <- broom::tidy(boot(X, ThetaJK, R=50000))
+t_ThetaJK
+```
+
+(f) Order the three estimators of $\theta$ according to their bias and then reorder again according standard error. Describe the results. Recommend an estimator along with your rationale.
+
+```{r}
+library(gt)
+library(viridis)
+library(dplyr)
+
+resultdf <- data.frame(
+  estimators = c("Phat", "Thetahat", "ThetaJk"),
+  bias = c(t_Phat$bias, t_Thetahat$bias, t_ThetaJK$bias),
+  stderror = c(t_Phat$std.error, t_Thetahat$std.error, t_ThetaJK$std.error)
+)
+
+## Order by bias
+resultdf |> arrange(desc(bias)) |>
+  gt() |>
+  data_color(columns = c("bias"), palette = "viridis")
+```
+
+Here we observed that Phat estimator had the lowest bias, Thatahat had the second lowest bias while ThetaJK had the highest bias
+
+```{r}
+## Order by standard error
+resultdf |> arrange(desc(stderror)) |>
+  gt() |>
+  data_color(columns = c("stderror"), palette = "viridis")
+```
+
+According to the standard error, Thetahat had the lowest standard error, closely followed by ThetaJK while Phat had the highest standard error.
+Giving the result observed, the Thetahat estimator seemed more plausible, giving it had both low bias and standard error and because as compared to other estimators, more likely describes the distribution of the random variables.
+
+# Bootstrap the Mean of Median House Values in the Boston Data
+
+We will now consider the `Boston` housing data set from the {MASS} library.
+
+```{r}
+library(MASS)
+```
+
+(a) Based on this data set, provide an estimate for the population mean $\mu$ of `medv`, which is the median value of owner-occupied homes in \$1000s.
+    Call this estimate $\hat{\mu}$ or `muhat`.
+
+    ```{r}
+    muhat <- mean(Boston$medv)
+    muhat
+    ```
+
+(b) Estimate the standard error of $\hat{\mu}$ based on the sample standard deviation (we know, $\text{StdError}(\bar{x})= \sigma/\sqrt{n}$.)
+
+    ```{r}
+    stderror <- sd(Boston$medv)/(sqrt(length(Boston$medv)))
+    stderror
+    ```
+
+(c) Use the bootstrap method with at least 10,000 samples for the mean of $medv$ and estimate the standard error of $\hat{\mu}$ using these samples.
+    How does this compare to your answer from (b)?.
+    Set your seed to 123 to be reproducible.
+
+    ```{r}
+    set.seed(123)
+    n_samp <- 10000
+    bootstrap_sampls <- rep(NA_real_, n_samp)
+
+    n <- length(Boston$medv)
+    for (i in seq_along(bootstrap_sampls)) {
+      x <- sample(Boston$medv, n, replace = TRUE)
+      bootstrap_sampls[i] <- mean(x, na.rm = TRUE)
+    }
+
+    head(bootstrap_sampls, n = 10)
+
+
+    stderror_boots <- sd(bootstrap_sampls)/(sqrt(length(bootstrap_sampls)))
+    stderror_boots
+    ```
+
+    The standard error of the original data is higher than the standard error of the bootstrap samples by more than 0.4units.
+    The bootstrap samples minimized the standard error.
+
+(d) Based on your bootstrap estimate from (c), provide a 95% confidence interval for $\mu$.
+    A popular approximation is $\hat{\mu} \pm 2\times\text{StdError}(\hat{\mu})$.
+    Compare it to the results obtained using an R command `t.test(Boston$medv)`.
+
+    ```{r}
+    confi95 <- quantile(bootstrap_sampls, probs = c(0.025, 0.975))
+    confi95
+    ```
+
+(e) Now, estimate $M$, the population median of `medv` with the sample median $\hat{M}$.
+
+    ```{r}
+    PopMedian <- median(Boston$medv)
+    PopMedian
+    ```
+
+We want to estimate the standard error of $\hat{M}$, but unfortunately, there is no simple formula for computing the standard error of a sample median.
+Instead, estimate this standard error using the bootstrap method with at least 10,000 samples.
+Use seed 123.
+
+```{r}
+set.seed(123)
+n_samp <- 10000
+bootstrap_samplsmedian <- rep(NA_real_, n_samp)
+
+n <- length(Boston$medv)
+for (i in seq_along(bootstrap_samplsmedian)) {
+  x <- sample(Boston$medv, n, replace = TRUE)
+  bootstrap_samplsmedian[i] <- median(x, na.rm = TRUE)
+}
+
+#head(bootstrap_samplsmedian, n = 10)
+
+
+stderrormedian_boots <- sd(bootstrap_samplsmedian)/
+  (sqrt(length(bootstrap_samplsmedian)))
+stderrormedian_boots
+```
