@@ -1,0 +1,312 @@
+---
+title: "STAT-427/627 Homework #3"
+subtitle: "Name:Roland Abi Course: STA 627"
+number-sections: true
+toc: true
+format:
+  pdf:
+    toc: true
+    toc-depth: 1
+    embed-resources: true
+---
+
+# Finding Gold!
+
+Big Jim found a gold mine and he tries to predict whether or not there is gold at his chosen spot, 200m from his tent (T).
+
+He has made multiple probes at different distances (in meters) from his tent with the following results.
+Gold (G) or No Gold (N).
+
+|  0   | 100 | 120 | 140 | 160 | 180 | **200** | 210 | 230 | 250 | 290 |
+|:----:|:---:|:---:|:---:|:---:|:---:|:-------:|:---:|:---:|:---:|:---:|
+| Tent |  G  |  G  |  N  |  N  |  G  |  **?**  |  N  |  G  |  N  |  G  |
+
+(a) Use the KNN method with K = 3 to make a prediction at Jim's chosen spot.
+(b) Use the KNN method with K = 5 to make a prediction at Jim's chosen spot.
+
+-   Do this manually (no code) and show your work. You can use the following table. If there are ties, indicate so and use random selection to break them.
+
+$Distance = \sqrt{\sum_{i=1}^{n}(X_{i2} - X_{i1})^2}$
+
+$Dist_{from100to200} = \sqrt{(200-100)^2}$
+
+$Dist_{from120to200} = \sqrt{(200-120)^2}$
+
+$Dist_{from140to200} = \sqrt{(200-140)^2}$
+
+$Dist_{from160to200} = \sqrt{(200-160)^2}$
+
+$Dist_{from180to200} = \sqrt{(200-180)^2}$
+
+$Dist_{from210to200} = \sqrt{(200-210)^2}$
+
+$Dist_{from230to200} = \sqrt{(200-230)^2}$
+
+$Dist_{from250to200} = \sqrt{(200-250)^2}$
+
+$Dist_{from290to200} = \sqrt{(200-290)^2}$
+
+|          |  0  | 100 | 120 | 140 | 160 | 180 | **200** | 210 | 230 | 250 | 290 | $\hat{Y}$ |
+|----------|:---:|:---:|-----|:---:|:---:|:---:|:-------:|:---:|:---:|:---:|:---:|:---------:|
+|          |  T  |  G  | G   |  N  |  N  |  G  |  **?**  |  N  |  G  |  N  |  G  |           |
+| distance |  0  | 100 | 80  | 60  | 40  | 20  |   200   | 10  | 30  | 50  | 90  |           |
+| k = 3    |     |     |     |     |     | $1$ |         | $1$ | $1$ |     |     |    $G$    |
+| k = 5    |     |     |     |     | $1$ | $1$ |         | $1$ | $1$ | $1$ |     |    $N$    |
+
+# KNN Prediction
+
+The table below provides a training data set of six observations of three predictors, and one qualitative response variable $Y$.
+
+Predict for $Y$ when $X_1 = 1, X_2 = 0, X_3 = 1$ using K-nearest neighbors.
+
+(a) Compute the Euclidean distance between each observation and the test point, $X_1 = 1, X_2 = 0, X_3 = 1$.
+
+(b) What is your prediction with $k = 1$?
+    Why?
+
+    $Red$ because the nearest and only neighbor for $K = 1$ is a $Red$
+
+(c) What is your prediction with $k = 3$?
+    Why?
+
+    $Green$ because on average, the green class had the smallest distance as compare to the red class.
+
+-   Do this manually (no code) and show your work. You can use the following table or insert a photo. If there are ties, indicate so and use random selection to break them.
+
+$Distance = \sqrt{\sum_{i=1}^{n}(X_{i2} - X_{i1})^2}$
+
+**Distance from observation 1 to X**
+
+$Dist_{obs1} = \sqrt{(1-0)^2 + (0-3)^2 + (1-0)^2}$
+
+$Dist_{obs2} = \sqrt{(1-2)^2 + (0-0)^2 + (1-0)^2}$
+
+$Dist_{obs3} = \sqrt{(1-0)^2 + (0-1)^2 + (1-3)^2}$
+
+$Dist_{obs4} = \sqrt{(1-0)^2 + (0-1)^2 + (1-2)^2}$
+
+$Dist_{obs5} = \sqrt{(1+1)^2 + (0-0)^2 + (1-1)^2}$
+
+$Dist_{obs6} = \sqrt{(1-1)^2 + (0-1)^2 + (1-1)^2}$
+
+| Obs. | $X_1$ | $X_2$ | $X_3$ | $Y$   | Dist to $\vec{X}=(1,0,1)$ | Neigh for $k=1$ | Neigh for $k = 3$ |
+|------|-------|-------|-------|-------|:-------------------------:|:---------------:|:-----------------:|
+| 1    | 0     | 3     | 0     | Red   |        $\sqrt{11}$        |                 |        $1$        |
+| 2    | 2     | 0     | 0     | Green |        $\sqrt{2}$         |                 |        $1$        |
+| 3    | 0     | 1     | 3     | Red   |        $\sqrt{6}$         |                 |        $1$        |
+| 4    | 0     | 1     | 2     | Green |        $\sqrt{3}$         |                 |        $1$        |
+| 5    | −1    | 0     | 1     | Green |            $2$            |                 |        $1$        |
+| 6    | 1     | 1     | 1     | Red   |            $1$            |       $1$       |        $1$        |
+|      |       |       |       |       |         $\hat{Y}$         |      $Red$      |      $Green$      |
+
+(d) *In classification problems, decision boundaries separate different response categories in the* $\vec{X}$ space of predictor variables. If the decision boundary in this problem is highly nonlinear, would we expect the best value for $k$ to be large or small? Why?
+
+If the decision boundary in this problem is highly nonlinear, we would expect a flexible model and the best value for K to be small because: with smaller $k$ , the model considers a smaller number of nearest neighbors leading to decision boundaries that can accommodate the patterns of nonlinearity in the data.
+
+# Stock Market Prediction
+
+We want to predict the behavior of the stock market in the following week.
+The `Weekly` data set in {ISLR2} contains 1,089 observations with the following 9 variables.
+
+-   `Year`: The year that the observation was recorded
+-   `Lag1`: Percentage return for previous week
+-   `Lag2`: Percentage return for 2 weeks previous
+-   `Lag3`: Percentage return for 3 weeks previous
+-   `Lag4`: Percentage return for 4 weeks previous
+-   `Lag5`: Percentage return for 5 weeks previous
+-   `Volume`: Volume of shares traded (average number of daily shares traded in billions)
+-   `Today`: Percentage return for this week
+-   `Direction`: A factor with levels `Down` and `Up` indicating whether the market had a positive or negative return on a given week
+
+(a) Review some numerical and graphical summaries of the Weekly data. Do there appear to be any patterns?
+
+```{r}
+#| include: true
+#| message: false
+library(tidyverse)
+library(ISLR2)
+library(caret)
+library(class)
+
+# some possible options
+glimpse(Weekly)
+summary(Weekly)
+# cor(Weekly[,2:8])
+
+GGally::ggpairs(Weekly[,c(9, 1:8)])
+Weekly |>
+  ggplot(aes(Direction, log(Volume))) +
+  geom_boxplot(notch = TRUE)
+
+# not Required
+# glmout <- glm(Direction ~ Volume + Lag1 + Lag2 + Lag3 + Lag4 + Lag5,
+#               family = "binomial", data = Weekly)
+# summary(glmout)
+```
+
+The numeric summary shows no difference in the minimum and maximum value of Lag1 to Lag5, Direction is a categorical variables with the Up class being the majority.
+The pattern of the relationship between the Lags variable and direction is consistent.
+They are outliers at both ends of the boxplot.
+
+(b) Split the data set into training and testing data and use the KNN method with $K = 7$ to predict `Direction` as the response based on the five lag variables plus `Volume` as predictors.
+    Use split percentage of 75%.
+    Why or why not is this a good split percentage?
+    Use seed 123.
+
+    ```{r}
+    set.seed(123)
+    training_pct = .75 
+    nrow(Weekly)
+    ```
+
+    ```{r}
+    Z = sample(nrow(Weekly), training_pct*nrow(Weekly))
+
+    # Set our test and training data
+    Xtrain = Weekly[Z, c("Lag1", "Lag2", "Lag3", "Lag4", "Lag5", "Volume")] # training set 
+    Ytrain = Weekly$Direction[Z]  # Our training set y
+    Xtest = Weekly[-Z, c("Lag1", "Lag2", "Lag3", "Lag4", "Lag5", "Volume")] #test data set
+    Ytest = Weekly$Direction[-Z] 
+    ```
+
+    The 75% split percentage is good because with this amount of split, the model has a substantial amount of information to learn from which is important for building a robust and generalizable model.
+    It also strikes a balance between providing the model with enough data to learn patterns and having sufficient large testing set for model evaluation.
+
+    ```{r}
+    yhat <- knn(train = Xtrain, test = Xtest, cl = Ytrain, k = 7)
+    ```
+
+(c) Compute the confusion matrix, showing a table with the cross-tabulation of the actual and predicted responses.
+
+    ```{r}
+
+    confusionmatrix <- table(Ytest, yhat)
+    confusionmatrix
+    ```
+
+(d) Compute the *classification rate*, which is the overall fraction of **correct** predictions.
+
+    ```{r}
+    accuracy <- sum(confusionmatrix[1], confusionmatrix[4])/sum(confusionmatrix)
+    accuracy
+    ```
+
+(e) Tuning.
+    Try values of $k$ from 1 to 100 and identify the one which minimizes the prediction *error* rate.
+    Report the optimal $k$ and the associated **error rate**.
+
+    ```{r}
+    # Initialize data
+    err_class <- rep(1:100)
+    tpr <- rep(1:100)
+    fpr <- rep(1:100)
+
+    for (k in 1:100) {
+      Yhat <- knn(Xtrain, Xtest, Ytrain, k = k) 
+      err_class[k] <- mean(Yhat != Ytest) # The prediction is not correct
+      tpr[k] <- sum(Yhat == 1 & Ytest == 1) / sum(Ytest == 1) # TP/P
+      fpr[k] <- sum(Yhat == 1 & Ytest == 0) / sum(Ytest == 0) # FP/N
+    }
+
+
+    ggplot(tibble(err_class, k = 1:100), aes(x = k, y = err_class)) +
+      geom_line() + theme_bw()
+    ```
+
+    ```{r}
+    # optimal k which minimizes error_rate
+    which.min(err_class)
+
+    # associated error rate
+    err_class[which.min(err_class)]
+    ```
+
+# The Curse of Dimensionality [(STAT-627 only)]{style="font-size: small"}
+
+When the number of features $p$ is large, there tends to be a deterioration in the performance of KNN and other local approaches that perform prediction using only observations that are *near* the test observation.
+This phenomenon is known as the *curse of dimensionality* and it describes why non-parametric methods tend to perform poorly as $p$ (the number of dimensions in the model) gets "large".
+
+(a) Suppose we have a set of observations with a response variable $Y$ and one feature $X$, so $p=1$. Assume we know the true distribution of $X$ is Continuous Uniform(0,1), i.e., it is equally likely to occur anywhere in the range $[0, 1]$. This means the $p(X \text{ is in the range }[a, b] = \frac{b-a}{1-0}$ (see [Continuous Uniform Probability distribution](https://en.wikipedia.org/wiki/Continuous_uniform_distribution) for the density function) .
+
+-   Given a test observation $X_t$, we wish to predict the response $\hat{Y}_t$ using only observations that are **within 10%** of the possible range of $X_t$ which is $[0,1]$. For instance, to predict the response for a test observation $X_t = 0.6$, 10% of $[0,1] = 0.1$ so we will use observations in the range $.6 \pm (0.1/2) = .05$ or $[0.55, 0.65]$. For $X_t \leq 0.1$ we use the range $[0, 0.1]$ and for $X_t \geq 0.9$ we use $[0.9,1]$.
+
+*On average, what fraction of the available observations will we use to make the prediction?* In other words, if we have 100 observations, what percentage of them would we expect to be within 10% of $X_t = .65$.
+
+To predict the response $\hat{Y_t}$ for $X_t = .65$ if we have 100 observations.
+10% of $[0,1] = 0.1$ so we will use observations in the range $0.65 \pm (\frac{0.1}{2}) = [0.6, 0.7]$ .
+We would expect 10% of them to be within 10% of $X_t = .65$ since the uniform distribution is equally likely across the entire range.
+
+(b) Now suppose we add another predictor variable $X_2$, so $p = 2$ dimensions. We assume $(X_1$ and $X_2)$ are both uniformly distributed on $[0, 1] × [0, 1]$ **and are independent**. That assumption simplifies their [joint probability distribution](https://en.wikipedia.org/wiki/Joint_probability_distribution) to a joint distribution for independent variables which is the product of their individual (marginal) probabilities, i.e., $p(A \text{ and } B) = p(A)\times p(B)$.
+
+-   We now wish to predict the response $\hat{Y}_t$ for a test observation $(X_{1t}, X_{2t})$ using only observations that are within 10% of the range of $X_1$ **and** within 10% of the range of $X_2$ closest to the test observation. For instance, to predict the response for a test observation $(X_{1t}, X_{2t}) = (0.6, 0.35)$, we will use observations in the range $[0.55, 0.65]$ for $X_{1}$ and in the range $[0.3, 0.4]$ for $X_{2}$.
+
+*On average, what fraction of the available observations are in the desired neighborhood we so we can them to make the prediction?*
+
+Given a test observation $(X_{1t}, X_{2t})$ we wish to predict the response $\hat{Y_t}$ using observations with 10% of the range of $X_1$ and within 10% of the range of $X_2$ closet to the test observation.
+
+For instance, to predict the response for a test observation $(X_{1t}, X_{2t}) = (0.6, 0.35)$, we will use observations in the range $[0.55, 0.65]$ for $X_{1}$ and in the range $[0.3, 0.4]$ for $X_{2}$.
+
+The fraction of available observations in the desired neighborhood we can us for prediction of $\hat{Y_t}$ is the product of the fraction (marginals) for each dimension
+
+Fraction within 10% of the range of $X_1$ is $0.1$
+
+Fraction within 10% of the range of $X_2$ is $0.1$
+
+Average fraction for $(X_1, X_2) = 0.1 x 0.1 = 0.01$.
+
+$\implies$ On average, approximately 1% of the observations in the desired neighborhood can be use to make prediction.
+
+(c) Now we add 98 more predictor variables ($p = 100$ dimensions) and all of them are are continuous Uniform(0,1) and independent of all other predictor variables. We wish to predict a test observation's response using observations within the 10% of each feature's range that is closest to that test observation.
+
+*What fraction of the available observations will we use to make the prediction?*
+
+for each $X_1, X_2, …, X_{100}$, 10% of the interval $[0,1]$ is $0.1$.
+Therefore the average fraction is product of their marginals $(X_1, X_2, …, X_{100})$ = $P(X_1) x P(X_2)x, …, xP(X_{100})$
+
+Average fraction is $0.1^{100}$
+
+(d) Using your answers to parts (a)-(c), argue that a drawback of KNN when $p$ is large is there are very few training observations "near" any given test observation.
+
+    Consider the KNN algorithm classifies a given test observation based on the majority class of its $k$ nearest neighbors in the features.
+    However, when the dimension $p$ of the feature space is large, the concept of nearness or distance becomes less meaningful due to
+
+    -   Irrelevant features: with a large number of dimensions, there's higher likelihood of including irrelevant features that can add noise to the distance measurement.
+
+    -   Risk of overfitting: with high number of features the algorithm can start to fit the noise in the data rather than the underlying pattern.
+
+    -   Computational complexity: as the number of features increases, they arises complexities in estimating distance between the test and the training observations.
+
+(e) We really want to use 10% of the data to make our prediction.
+    We just saw we can't do it by limiting ourselves to 10% of the range for each predictor.
+
+-   We now ask, for $p$ predictors that are [i.i.d.](https://en.wikipedia.org/wiki/Independent_and_identically_distributed_random_variables) Uniform (0, 1)), how big does the hypercube of $p$ dimensions have to be so on average its volume will contain 10% of the data.
+-   Given our assumptions, a volume that is 10% of the total possible space should contain 10% of the data on average. So the question is, what is the length of each side of the hypercube that we need to get to 10% of the volume.
+-   Let's call the length of one side of our hypercube $s$.
+-   Note: A hyper-cube is a generalization of a cube to an arbitrary number of dimensions $p$. When $p$ = 1, a hyper-cube is a line segment, when $p = 2$ it is a square, and when $p = 100$ it is a 100-dimensional hyper-cube. Since all sides $s$ are the same length in a hyper-cube, the "volume" of a hyper-cube with dimension $p$ is $s^p$. For $p=1$, the "volume" is the length of the line segment and for $p=2$ the "volume" is the area of the square.
+
+*Calculate the length of* $s$ for $p$ = 1, 2, and 100 so the hyper-cube has a volume of 10%?
+Comment on your results.
+
+For $p$ predictors that are $i.i.d$ uniform(0,1).
+the volume that is 10% of the total possible space that should contain the data on average will be 0.1.
+Therefore, the length of $s$ is given as
+
+$s^p = 0.1$
+
+for $p = 1$
+
+$s^1 = 0.1$ $\implies s = 0.1$
+
+for $p = 2$
+
+$s^2 = 0.1$
+
+$s$ = $\sqrt(0.1) = 0.3162$
+
+for p = 100
+
+$s^{100} = 0.1$
+
+$s = 100\sqrt(0.1) = 0.9772$
+
+The result demonstrates the distribution of data becomes extremely difficult to handle as the number of dimension $p$ increases.
