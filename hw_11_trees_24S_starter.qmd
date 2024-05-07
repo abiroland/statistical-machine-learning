@@ -1,0 +1,229 @@
+---
+title: "STAT-427/627 Homework - Trees"
+subtitle: "Name:Roland Abi Course: STA 627"
+number-sections: true
+cache: false
+format:
+  pdf:
+    toc: false
+    toc-depth: 1
+    embed-resources: true
+---
+
+# Trees
+
+Look at the figure below.
+
+(a) Draw a tree diagram corresponding to the partition of the predictor space shown for Tree A (left-hand panel of @fig-tree).
+    The numbers inside the boxes indicate the mean of Y within each region.
+    Upload it here:
+
+    ![](images/Q1.jpg){width="440"}
+
+(b) Draw a partition of the predictor space for the tree diagram for Tree B (right-hand panel of @fig-tree) and indicate the mean of Y for each region.
+
+    ![](images/Q2.jpg){width="515"}
+
+<!-- -->
+
+(c) Are these regression trees or classification trees?
+    Why?
+
+    They are both regression trees because the prediction is numeric
+
+```{r}
+#| echo: True
+library(tidyverse)
+```
+
+# Bagging
+
+Suppose we produce ten bootstrapped samples from a data set containing equal numbers of two classes red and green so $P(\text{Class is Red}) = .5 = P(\text{Class is Green})$.
+
+We then apply a classification tree to each bootstrapped sample and, for a specific value of `X`, produce 10 estimates of $P(\text{Class is Red} |X)$: 0.25, 0.25, 0.35, 0.45, 0.45, 0.55, 0.65, 0.65, 0.70, and 0.75.
+
+There are two common ways to combine these results together into a single class prediction.
+
+-   One is the majority vote approach where we compare each value to a threshold and see how many are greater than the threshold.
+
+    `Assumed threshold = .5`
+
+    ```{r}
+    probs <- tibble(
+      Red = c(0.25, 0.25, 0.35, 0.45, 0.45, 0.55, 0.65, 0.65, 0.70, 0.75)
+    )
+
+    test <- probs |>
+      mutate(
+        descision = if_else(probs > .5, 1, 0)
+      )
+
+    table(test$descision)
+    ```
+
+-   The second approach is to classify based on the average probability across each estimate and then compare to the threshold.
+
+```{r}
+avg_prob <- mean(probs$Red)
+avg_prob >= .5
+```
+
+In this example, what is the final classification for each approach?
+
+`For the majority approach, it is a tie`
+
+The second approach predicts a $Red$ based on comparing if the average probability across each estimate is $\ge$ the threshold (0.5).
+
+# Orange Juice Purchases (Chap. 8, \# 9)
+
+This problem involves the OJ (orange juice) data set which is part of the {ISLR2} package.
+To find its description, type `?OJ`.
+
+```{r}
+#| message: false
+#| echo: fenced
+
+library(ISLR2)
+# ?OJ
+glimpse(OJ)
+```
+
+(a) Create a validation set with the training set containing a random sample of 600 observations and a test set containing the remaining observations.
+    Use `set.seed(1234)`.
+
+    ```{r}
+    set.seed(1234)
+
+    Z <- sample(nrow(OJ), 600)
+
+    oj_train <- OJ[Z, ]
+    oj_test <- OJ[-Z, ]
+
+    head(oj_train)
+    ```
+
+(b) Use the {tree} package with the training data to fit a tree to the training data to predict `Purchase` based on the other variables as predictors.
+
+    ```{r}
+    set.seed(1234)
+    library(tree)
+    tr <- tree(as.factor(Purchase) ~ ., data = oj_train)
+    ```
+
+-   Use the `summary()` and describe the results obtained.
+
+    ```{r}
+    summary(tr)
+    ```
+
+-   Which variables are used in the tree?
+
+    **Variables used in tree construction:** `LoyalCH, PriceDiff, ListPriceDiff, SalesPriceCH`
+
+-   What is the training error rate?
+
+    **Training error rate:** `0.1567`
+
+-   Do the variables make sense to you?
+
+    With a misclassification error rate of only `15%` we could conclude the four selected variables could predict purchase choice.
+    However the residual mean deviance is substantially high which could affect the model overall predictive ability.
+
+(c) Type in the name of your tree object to get a detailed text output.
+
+    ```{r}
+    plot(tr)
+    text(tr)
+    ```
+
+-   How many decisions were made to select the observations for Node 26 and at what nodes.
+
+    `Four decision`
+
+-   Describe each of the outputs in the line for node 26.
+
+    ``` Split condition = ListPriceDiff``< 0.225``n (Number of cases reaching this node) = 74 ```
+
+    `deviance remaining in the node = 95.96`
+
+    `yval (prediction) = CH (Citrus Hill)`
+
+    `yprob (probability of prediction, we used highest prob) =   0.64865`
+
+(d) Create a plot of the tree, and identify node 26.
+
+    ![](images/Screenshot%202024-04-17%20081232.png){width="395"}
+
+(e) Predict the response on the test data, and produce a confusion matrix comparing the test labels to the predicted test labels.
+    What is the test error rate?
+
+    ```{r}
+    yhat1 <- predict(tr, newdata = oj_test, type = "class")
+
+    # confusion matrix
+    confmatfm <- table(yhat1, oj_test$Purchase)
+    confmatfm
+
+    testerror_rate <- mean(yhat1 != oj_test$Purchase)
+    testerror_rate
+    ```
+
+(f) Use `cv.tree()` on the training set to determine the optimal tree size based on the misclassification rate.
+    Use `set.seed(1234)`.
+
+    ```{r}
+    set.seed(1234)
+    tr_cv <- cv.tree(tr, FUN = prune.misclass)
+    tr_cv
+    ```
+
+(g) Produce a plot with tree size on the x-axis and cross-validated classification error rate on the y-axis.
+
+    ```{r}
+    plot(tr_cv)
+    ```
+
+(h) Which tree size corresponds to the lowest cross-validated classification error rate with fewest nodes?
+
+    `Both tree size 8 and 4 have the lowest cross-validation classification error rate. But for the purpose of fewest nodes we will select tree size 4`
+
+(i) Produce a pruned tree corresponding to the optimal tree size obtained using cross-validation.
+    If cross-validation does not lead to selection of a pruned tree, then create a pruned tree with five terminal nodes.
+
+    ```{r}
+    set.seed(1234)
+    tr_opt_m <- prune.tree(tr, best = 4)
+    tr_opt_m
+    ```
+
+    ```{r}
+    summary(tr_opt_m)
+    ```
+
+    ```{r}
+    plot(tr_opt_m)
+    text(tr_opt_m)
+    ```
+
+(j) What variables remain?
+
+    `LoyalCH, PriceDiff`
+
+<!-- -->
+
+(j) Compare the training error rates between the pruned and unpruned trees.
+    Which is higher?
+
+    `The training error rates between the pruned and unpruned trees are similar`
+
+(k) Compare the test error rates between the pruned and unpruned trees.
+    Which would you recommend as the final tree?
+
+    ```{r}
+    # test error rate pruned tree
+    yhat2 <- predict(tr_opt_m, newdata = oj_test, type = "class")
+    pruned_error_rate <- mean(yhat2 != oj_test$Purchase)
+    pruned_error_rate
+    ```
+
+`The test error rates between the pruned and unpruned tree are the same. However, I will recommend the pruned tree model because it has fewer nodes`
