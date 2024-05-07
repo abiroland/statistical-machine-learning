@@ -1,0 +1,521 @@
+---
+title: "STAT-427/627 Homework #9 Ridge LASSO"
+subtitle: "Name: Roland Abi Course: STA 627"
+number-sections: true
+format:
+  html:
+    embed-resources: true
+---
+
+# College Applications Continued
+
+This continues the College data problem from the previous h/w.
+
+Predict the number of applications received based on the other variables in the College data set.
+
+-   This data set is from our textbook. Access it with `library(ISLR2)`.
+
+```{r}
+#| message: false
+library(ISLR2)
+library(tidyverse)
+library(glmnet)
+glimpse(College)
+```
+
+(a) Create three histograms -- one for `Apps`, `Accept`, and `Enroll`. What do you notice?
+
+```{r}
+#| layout-ncol: 3
+#| warning: false
+#| fig-cap: 
+#|   - "Apps"
+#|   - "Accept"
+#|   - "Enroll"
+
+ggplot(College, aes(x = Apps, col = "red")) +
+  geom_histogram(fill = "grey", bins = 15) +
+  theme_bw() +
+  theme(legend.position = "none")
+
+ggplot(College, aes(x = Accept, col = "green")) +
+  geom_histogram(fill = "grey", bins = 15) +
+  theme_bw() +
+  theme(legend.position = "none") 
+
+ggplot(College, aes(x = Enroll, col = "blue")) +
+  geom_histogram(fill = "grey", bins = 15) +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+They are all skewed to the right, and unimodal distances in bins from 2000 and above suggest high variability within each feature.
+
+(b) Create three scatter plots of for Y = `Apps`, `Accept` and `Enroll` and X = `Top10perc`. Use `label=rownames(College)` inside the `aes()` call and add `geom_label()` to the plot. What do you notice?
+
+```{r}
+#| layout-ncol: 3
+#| fig-cap: 
+#|   - "Apps"
+#|   - "Accept"
+#|   - "Enroll"
+
+
+ggplot(College, aes(y = Apps, x = Top10perc,
+                    label = rownames(College))) +
+  geom_point(fill = "grey")+
+  geom_label(size = 2)+
+  theme_bw() +
+  theme(legend.position = "none") 
+
+ggplot(College, aes(y = Accept, x = Top10perc,
+                    label = rownames(College))) +
+  geom_point(fill = "grey")+
+  geom_label(size = 2)+
+  theme_bw() +
+  theme(legend.position = "none") 
+
+ggplot(College, aes(y = Enroll, x = Top10perc,
+                    label = rownames(College))) +
+  geom_point(fill = "grey")+
+  geom_label(size = 2)+
+  theme_bw() +
+  theme(legend.position = "none") 
+```
+
+Majority of the students from the top 10% high school applied to Rutgers at New Brunswick.
+Rutgers also had the highest number of accepted applications followed Purdue University.
+While Michigan state and Texas A&M had the highest number of new students enrolled from the top 10% students in their high school class.
+Overall, there appears to be no linear relationship between, Apps, Accept, Enroll and Top10perc, and the distribution of observations are similar at below 2000 for each feature and between 0 and 50 for Top10perc.
+
+\`\`
+
+(c) Create training and testing data sets from the `College` data *and design matrices for each.*
+
+-   Use `set.seed(123)` and a 50% split for creating the validation set.
+
+    ```{r}
+    set.seed(123)
+    training_pct <- .50 
+
+    Z <- sample(nrow(College), training_pct*nrow(College))
+
+    college_train <- College[Z, ] |> remove_rownames()
+    college_test <- College[-Z, ] |> remove_rownames()
+
+    # training set
+    x_train <- model.matrix(lm(Apps ~ ., data = college_train))[,-1]
+    y_train <- college_train$Apps
+
+
+    # testing set
+    x_test <- model.matrix(lm(Apps ~ ., data = college_test))[,-1]
+    y_test <- college_test$Apps
+
+
+    head(x_train)
+    head(x_test)
+    ```
+
+(d) Use {glmnet} to fit models with these methods:
+
+    ```{r}
+    set.seed(123)
+    # Ridge Regression 
+    train_rr <- glmnet(x_train, y_train, alpha = 0)
+
+    head(coef(train_rr) |> as.matrix())
+
+    plot(train_rr, xvar = "lambda", label = TRUE, ylim = c(-3, 3))
+    ```
+
+```{r}
+set.seed(123)
+# Lasso Regression 
+train_lr <- glmnet(x_train, y_train)
+
+head(coef(train_lr) |> as.matrix())
+
+plot(train_lr, xvar = "lambda", label = TRUE, ylim = c(-3, 3))
+```
+
+-   Ridge regression, with $\lambda$ chosen by cross-validation.
+
+-   Lasso regression, with $\lambda$ chosen by cross-validation.
+
+For each method:
+
+1.  Use `set.seed(123)` prior to cross-validation so your work is reproducible.
+2.  Plot the results of the cross validation **on the training data**.
+3.  Use a model with the "best lambda" to estimate the **prediction MSE** using the test data.
+
+d.1.
+Ridge: Find the best model and plot.
+Choose the "best lambda."
+
+Here we take model with `lambda.1se` as the best model
+
+coef(train_rr_cv, s = "lambda.1se")
+
+```{r}
+set.seed(123)
+# Ridge regression with lambda chosen by cross-validation
+train_rr_cv <- cv.glmnet(x_train, y_train, alpha = 0)
+train_rr_cv
+coef(train_rr_cv, s = "lambda.1se") 
+plot(train_rr_cv)
+```
+
+d.2.
+Ridge: Use the "best lambda" to get the Prediction MSE.
+
+```{r}
+pred_test_rr <- predict(train_rr_cv, newx = x_test, s = "lambda.1se")
+pred_MSE_rr <- round(mean((pred_test_rr - y_test)^2), digits = 2)
+pred_MSE_rr
+```
+
+d.1.
+Lasso: Find the best model and plot.
+Choose the "best lambda."
+
+```{r}
+set.seed(123)
+# Lasso regression with lambda chosen by cross-validation
+train_lr_cv <- cv.glmnet(x_train, y_train)
+train_lr_cv
+coef(train_lr_cv, s = "lambda.1se") 
+plot(train_lr_cv)
+```
+
+d.2.
+Lasso: Use the "best lambda" to get the Prediction MSE.
+
+```{r}
+pred_test_lr <- predict(train_lr_cv, newx = x_test, s = "lambda.1se")
+pred_MSE_lr <- round(mean((pred_test_lr - y_test)^2), digits = 2)
+pred_MSE_lr
+```
+
+(e) Summarize your results, recommend a model, and justify your choice.
+
+    ```{r}
+    library(gt)
+    tibble(
+      Model = c("Ridge", "Lasso"),
+      MSE = c(pred_MSE_rr, pred_MSE_lr)
+    ) |>
+      arrange(MSE) |>
+      gt() |>
+      data_color(columns = MSE, palette = "viridis")
+    ```
+
+    I will recommend the cross validated Lasso model because it has the lowest prediction mean square error and also has the minimum number number of variables compared to the ridge regression you want to consider the economy of obtaining the variables.
+
+-   Keep your results for the next homework!
+
+(f) Extra Credit: Using seed 1234 instead of 123 cuts the Ridge Regression MSE by 54% and decreases the Lasso Regression MSE by 26% while dropping out another variable. One would not expect that kind of change normally from just changing a seed.
+
+-   Given the results from histograms and scatter plots what do you think might be causing it?
+-   Create two sets of histograms for the training and testing data `Apps` for seed 123.
+-   Create two sets of histograms for the training and testing data `Apps` for seed 1234.
+-   What do you notice and how might that explain the results?
+
+```{r}
+#| layout-ncol: 2
+#| fig-cap: 
+#|   - "train"
+#|   - "test"
+
+set.seed(123)
+
+ggplot(college_train, aes(x = Apps, col = "red")) +
+  geom_histogram(fill = "grey", bins = 15) +
+  theme_bw() +
+  labs(title = "Train set Apps") +
+  theme(legend.position = "none")
+
+
+ggplot(college_test, aes(x = Apps, col = "red")) +
+  geom_histogram(fill = "grey", bins = 15) +
+  theme_bw() +
+  labs(title = "Test set Apps") +
+  theme(legend.position = "none")
+```
+
+```{r}
+#| layout-ncol: 2
+#| fig-cap: 
+#|   - "train"
+#|   - "test"
+
+set.seed(1234)
+
+training_pct <- .50 
+
+Z <- sample(nrow(College), training_pct*nrow(College))
+
+college_train <- College[Z, ] |> remove_rownames()
+college_test <- College[-Z, ] |> remove_rownames()
+
+ggplot(college_train, aes(x = Apps, col = "red")) +
+  geom_histogram(fill = "grey", bins = 15) +
+  theme_bw() +
+  labs(title = "Train set Apps") +
+  theme(legend.position = "none")
+
+
+ggplot(college_test, aes(x = Apps, col = "red")) +
+  geom_histogram(fill = "grey", bins = 15) +
+  theme_bw() +
+  labs(title = "Test set Apps") +
+  theme(legend.position = "none")
+```
+
+The result we observed by setting `set.seed(1234)` is due to decrease in sample variability in the test set
+
+# Simulation Project
+
+Generate simulated data, and then use this data to perform variable selection.
+Be sure to `set.seed(123)` so your results are reproducible.
+
+\(a\) Use the `rnorm()` function to generate 100 observations of a predictor $X$ (with a standard Normal(0,1) distribution) and also a noise vector $\epsilon$ of length $n = 100$ where $\epsilon$ has a Normal($\mu = 0, \sigma = 0.1)$ distribution.
+
+```{r}
+set.seed(123)
+n <- 100
+X <-  rnorm(n)
+epsilon =  rnorm(n, mean = 0, sd = 1)
+```
+
+\(b\) Generate a response vector $Y$ where $Y = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \beta_4X^4 + \epsilon$ and $\beta_0, \beta_1,\beta_2, \beta_3, \beta_4$ are `(0, 2, 3, 4, 5)`.
+
+```{r}
+Y <- 0 + 2* X + 3 * X^2 + 4 * X^3 + 5 * X^4 + epsilon
+```
+
+\(c\) Consider a model using a 10 degree polynomial $Y = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \beta_4X^4 + \cdots + \cdots + \beta_{10} X^{10}$ as the predictors.
+
+-   Use both forward stepwise selection and backward stepwise selection with `step()` for regularizing the ten predictors $X, X^2, X^3, \ldots, X^{10}$. Interpret your results.
+    -   If using the `poly()` function, be sure to set `raw = TRUE` and explain why.
+    -   If not using `poly()` be sure to set up the predictor data correctly by either creating a data frame (as follows) or using the "as-is" `I()` function inside the model.
+
+```{r}
+df <- data.frame("y" = Y, 
+                 "x1" = X^1, "x2" = X^2,"x3" = X^3,"x4" = X^4,"x5" = X^5,
+                 "x6" = X^6, "x7" = X^7,"x8" = X^8,"x9" = X^9, "x10" = X^10)
+```
+
+-   Create Reduced and Full models.
+
+```{r}
+reduced_model <- lm(y ~ x1 + x2 + x3 + x4, data = df)
+summary(reduced_model)
+
+full_model <- lm(y ~ ., data = df)
+summary(full_model)
+```
+
+-   Create Forward and Backward Models and set `trace=0` to reduce output.
+
+```{r}
+set.seed(123)
+
+# Foward search
+step_outf <- step(reduced_model, 
+                 scope = list(lower = reduced_model, upper = full_model),
+                 method = "forward", trace = 0)
+summary(step_outf)
+
+
+# Backward search
+step_outb <- step(full_model, 
+                 scope = list(lower = reduced_model, upper = full_model),
+                 method = "backward", trace = 0)
+summary(step_outb)
+```
+
+Use `summary()` with either `extractAIC` or `broom::glance()` to compare the two models.
+
+```{r}
+library(broom)
+tibble(
+  Model_name = c('step_outf', 'step_outb'),
+  AIC = c(glance(step_outf)$AIC, glance(step_outb)$AIC),
+  BIC = c(glance(step_outf)$BIC, glance(step_outb)$BIC), 
+  AdjRsq = c(glance(step_outf)$adj.r.squared, glance(step_outb)$adj.r.squared), 
+  noparams = c(glance(step_outf)$df, glance(step_outb)$df)
+) |> gt()
+```
+
+Both models have equally high adjusted Rsquared values.
+But the step forward model has the lowest AIC: `r glance(step_outf)$AIC` and BIC: `r glance(step_outf)$BIC` compared to the step backward model.
+
+\(d\) Now fit a lasso model with the same 10 predictors.
+
+-   Use cross-validation to select the optimal value of $\lambda$.
+-   Plot the cross-validation error as a function of $\lambda$.
+-   Report the resulting coefficient estimates.
+-   Discuss the results and which predictors got eliminated by lasso.
+
+```{r}
+x_sim <- model.matrix(full_model)[,-1]
+y_sim <- df$y
+```
+
+```{r}
+set.seed(123)
+# Lasso regression 
+lr_sim_cv <- cv.glmnet(x_sim, y_sim)
+lr_sim_cv
+coef(lr_sim_cv, s = "lambda.1se") 
+plot(lr_sim_cv)
+```
+
+The result obtained from the Lasso regression is similar to the result obtained from stepwise(forward) regression model.
+Predictos x5 to x10 got eliminated by Lasso regression and the same predictors were returned by the stepwise (forward) regression.
+Predictors retained for both models were x1, x2, x3, x4.
+
+# (STAT-627 only) Can You Use Ridge Regression to Bring a Calf back to the Herd or Do You Need a Lasso?
+
+A calf named *Beta* has wandered from the herd.
+As an intrepid wrangler of data, you can use one of two regression methods to minimize the distance between calf *Beta* and the herd where the goal is to drive *Beta* to the point 0 (center of the herd).
+Not the best analogy perhaps, but the following steps can help answer if you can get *Beta* to 0.
+
+For a set of $X_i$ data that is fixed, Ridge regression finds the $\vec{\beta}$ which minimizes the function $Q_{rr}(\vec{\beta})$ defined as
+
+$$
+Q_{rr}(\vec{\beta}) = \sum_{i = 1}^{n}(Y_i - \beta_0 - X_{i1}\beta_1 - \cdots - X_{ip}\beta_p)^2 +\lambda \sum_{j=1}^p\beta_j^2
+$$ {#eq-r}
+
+and Lasso regression finds the $\vec{\beta}$ which minimizes the function $Q_{lr}(\vec{\beta})$ defined as
+
+$$
+Q_{lr}(\vec{\beta}) =  \sum_{i = 1}^{n}(Y_i - \beta_0 - X_{i1}\beta_1 - \cdots - X_{ip}\beta_p)^2 +\lambda \sum_{j=1}^p|\beta_j|
+$$ {#eq-l}
+
+Let's use a simple example, where $n = p = 1$, we set $X = 1$, and the data is centered so the intercept is omitted from the model.
+
+-   We can drop the subscript on $\beta_i$ so the first term, error sum of squares, simplifies to $\text{SSerr} = (Y − \beta)^2$.
+
+-   We can simplify @eq-r and @eq-l to get $Q_{rr}(\beta)$ and $Q_{lr}(\beta)$ based on finding a single $\beta$.
+
+-   $$Q_{rr}(\beta) =  (Y_i - \beta)^2 +\lambda \beta^2 \qquad \text { and } \qquad Q_{lr}(\beta) =  (Y_i - \beta)^2 +\lambda |\beta|$$ {#eq-simplified}
+
+Solving for the $\beta$ that minimizes these functions gives the following solutions.
+
+$$
+\hat{\beta}_\text{ridge} = \frac{Y}{1 + \lambda} \quad \text{ and }\quad  \hat{\beta}_\text{lasso} = \begin{cases} Y - \lambda/2 \quad\text{ if }\quad Y>\lambda/2\\Y + \lambda/2 \quad\text{ if }\quad Y<-\lambda/2 \\
+0 \quad\quad\quad\quad\text{ if }\quad|Y|\leq\lambda/2\end{cases}
+$$ {#eq-minima}
+
+\(a\) Use the `curve()` function to create a plot for each simplified function $Q(\beta)$ in @eq-simplified.
+where we assume $Y$ and $\lambda$ are both fixed.
+
+-   Use `curve(expr, from= xxx, to = xxxx)` where `expr` is an R calculation for $Q(\beta)$ in @eq-simplified based on `Y`, `lambda` and `x` where `x` represents $\beta$ and the $x=\beta$ ranges `from=-2` to `to=2`.
+
+-   For ridge, create a graph with $Y = 1, \lambda = 1$
+
+-   For lasso, create three graphs, one each for $Y =1,\, Y = -1$ and $Y =.25$.
+    Set $\lambda = 1$ for all three.
+
+-   For all four graphs, add a vertical line in red (`abline(v = xxx, color="red")`) to show the location of the minimum of the function where xxx is the appropriate value.
+
+Your plots should look something like the following (do not worry about the titles) (see html document).
+
+```{r}
+#| layout-ncol: 2
+library(latex2exp) 
+
+Y <- 1 
+lambda <- 1 
+
+curve(((Y - x)^2 + lambda*x^2), from = -2, to = 2, 
+      ylab = TeX(r'($Q(\beta)_{RR}$)')) 
+abline(v = Y/(1 + lambda) , col = "red")
+title(main = TeX(r'($\textit{Ridge }: Y = 1, lambda = 1,
+                 minima = Y/(1 + lambda)$)'))
+
+
+curve(((Y - x)^2 + lambda*abs(x)), from = -2, to = 2,
+      ylab = TeX(r'($Q(\beta)_{Lasso}$)')) 
+abline(v = Y - lambda/2 , col = "red")
+title(main = TeX(r'($\textit{Lasso }: Y = 1, lambda = 1,
+                 minima = Y - lambda/2$)'))
+
+Yb = -1
+curve(((Yb - x)^2 + lambda*abs(x)), from = -2, to = 2,
+      ylab = TeX(r'($Q(\beta)_{Lasso}$)'))
+abline(v = Yb - (lambda/2) , col = "red")
+title(main = TeX(r'($\textit{Lasso }: Y = -1, lambda = 1,
+                 minima = Y - lambda/2$)'))
+
+Yc = 0.25
+curve(((Yc - x)^2 + lambda*abs(x)), from = -2, to = 2,
+      ylab = TeX(r'($Q(\beta)_{Lasso}$)')) 
+abline(v = Yc - (lambda/2) , col = "red")
+title(main = TeX(r'($\textit{Lasso }: Y = 0.25, lambda = 1,
+                 minima = Y - lambda/2$)'))
+```
+
+\(b\) Using the equations in @eq-minima, create a function for the optimal $\hat{\beta}_\text{ridge}$ and a function for the optimal $\hat{\beta}_\text{lasso}$.
+Both functions must have an argument $\lambda$.
+You can assume $Y$ has been assigned outside of the function.
+
+-   The `curve()` function is vectorized, i.e., it generates all the values of `x` between `from` and `to` as a vector and uses that in calculating the expression `expr`.\
+-   $\hat{\beta}_\text{lasso}$ is a piece-wise function, but you cannot use `if()` statements which operate only on a single value and not a vector of values.
+-   Consider a programming "technique" of using multiple logical comparisons (aka Indicator functions) to create your expression.
+    -   As an example, in the following, `((5*x) * (x<0)) + ((4*x)*(x>=0))`, the `x<0` and `x>=0` serve as indicator functions that use the logical comparisons to return 0 or 1.
+    -   Since the two indicator functions are mutually exclusive, that means the expression will return `5*x` if `x <0` else`4*x`if `x>=0`.
+    -   These have the advantage that they are also vectorized functions so they can work on the vector of `x` values generated by curve.
+
+b.1 Assign `Y <- 1`.
+
+-   Use `curve()` to plot $\hat{\beta}_\text{ridge}$ and then use `curve()` again to plot $\hat{\beta}_\text{lasso}$ on the same plot for a range of $x=\lambda$ from 0 to 10. You can set `color="red"` for Ridge and `color="blue"` for Lasso inside the `curve()` function.
+    -   Use `ylim - c(-.1, 1)` to set limits on the vertical axis to -0.1, 1.
+    -   Use `abline(0, 0, col = "green", lty = 2)` to set a dashed line at 0.
+
+b.2 Assign `Y<-4`.
+Recreate the plot with both curves on the same plot for a range of $x=\lambda$ from 0 to 10.
+- Use `ylim - c(-.1, 5)` to set limits on the vertical axis to -0.1, 5.
+- Use `abline(0, 0, col = "green", lty = 2)` to set a dashed line at 0.
+
+Compare the graphs in terms of how the $\hat{\beta}$s approach 0 as $\lambda$ increases.
+
+```{r}
+#| layout-ncol: 2
+
+ridge_b <- function(lambda) {
+  rr = Y/(1 + lambda)
+  return(rr)
+}
+
+lasso_b <- function(lambda) {
+  lr = ((Y - lambda/2) * (Y > lambda/2)) + ((Y + lambda/2)*(Y < -(lambda/2))) +
+    ((0) * (abs(Y) <= lambda/2))
+  return(lr)
+}
+
+Y <- 1
+curve(ridge_b, 0, 10, col = "red", lwd = 3, xlab = "lambda", 
+      ylab = TeX(r'($\hat{beta}$)'), ylim = c(-.1, 1))
+abline(0, 0, col = "green", lty = 2)
+curve(lasso_b, 0, 10, col = "blue", lwd = 3, xlab = "lambda", ylab = "Y", 
+      add = TRUE,)
+title(main = TeX(r'($Y = 1$)'))
+legend(7, 1, legend = c("Ridge", "Lasso"),
+       col = c("red", "blue"), lty = 1:1, cex = 0.8)
+
+Y <- 4
+curve(ridge_b, 0, 10, col = "red", lwd = 3, xlab = "lambda", 
+      ylab = TeX(r'($\hat{beta}$)'), ylim = c(-.1, 5))
+abline(0, 0, col = "green", lty = 2)
+curve(lasso_b, 0, 10, col = "blue", lwd = 3, xlab = "lambda", ylab = "Y", 
+      add = TRUE)
+title(main = TeX(r'($Y = 4$)'))
+legend(7, 5, legend = c("Ridge", "Lasso"),
+       col = c("red", "blue"), lty = 1:1, cex = 0.8)
+
+```
+
+As $lambda$ increases the $\hat{\beta}$s approaches zero (the center of the herd) faster for Lasso regression as compared to ridge regression.
