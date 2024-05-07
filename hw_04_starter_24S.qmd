@@ -1,0 +1,352 @@
+---
+title: "STAT-427/627 Homework #4 Logistic Regression"
+subtitle: "Name:Roland Abi Course: STA 627"
+number-sections: true
+toc: true
+format:
+  html:
+    toc: true
+    toc-depth: 1
+    embed-resources: true
+---
+
+# What are the Odds?
+
+\(a\) What is the expected fraction, $p$, of people with an odds ratio of 0.10 of defaulting on their credit card payment who will in fact default?
+
+![](images/WhatsApp%20Image%202024-02-15%20at%2004.22.03_142dee4f.jpg)
+
+\(b\) Suppose an individual has a 20% chance of defaulting on their credit card payment.
+What are the odds they will default?
+
+![](images/WhatsApp%20Image%202024-02-15%20at%2004.22.04_b652f6e5.jpg)
+
+# What's it take to get an A?
+
+Suppose we collect data on a group of students in a undergraduate statistics class using the following variables:
+
+-   $X_1$: hours studied
+-   $X_2$: undergrad GPA, and
+-   $Y$: receive an A (1) or Not an A (0).
+
+We fit a logistic regression and produce estimated coefficients $\beta_0 = −3$, $\beta_1= 0.06$, and $\beta_2 = 1.4$.
+
+(a) Estimate the probability a student who studies for 15 hours and has an undergrad GPA of 3.0 gets an A in the class.
+
+![](images/WhatsApp%20Image%202024-02-15%20at%2004.26.49_3e0b44cb_____.jpg)
+
+(a) How many hours would the student in part (a) need to study to have a 95% (predicted) chance of getting an A in the class?
+
+![](images/WhatsApp%20Image%202024-02-15%20at%2004.22.05_ec9105c2-01.jpg)
+
+# Tuning the Titanic Model for Testing Data
+
+The {DALEX} package's titanic data set includes a complete list of the passengers and crew along with additional variables to include survived.
+
+-   If you install the DALEX package (using the console), you can access it with `DALEX::titanc`.
+-   Then, remove `NA`s for `age`, `fare`, and `embarked`.
+
+In class, we selected the threshold that minimized the training error classification rate.
+Use the reduced model with `age`, `gender`, and `class` as predictors of `survived`.
+
+\(a\) Split the data into training and testing data using 75% of the data for training.
+Set a seed of 1234 for the random number generator so the results are reproducible.
+Create a model and then determine which threshold minimizes the prediction error classification rate for the testing data.
+
+```{r}
+#| message: false
+library(tidyverse)
+# 1. Load the data and remove NAs for age
+titanic <- DALEX::titanic
+# map_df(titanic, ~ sum(is.na(.)))
+titanic <- tidyr::drop_na(titanic, c(age, fare, embarked))
+
+# 2. Define the split between training and testing data
+set.seed(1234)
+training_pct <- .75
+
+Z <- sample(nrow(titanic), floor(training_pct*nrow(titanic)))
+
+train_df <- titanic[Z, c("survived", "age", "gender", "class")]
+test_df <- titanic[-Z, c("survived","age", "gender", "class")]
+
+# 3. Run the model on the training data
+logreg <- glm(as.factor(survived) ~ age + gender + class, 
+              data = train_df, family = "binomial")
+summary(logreg)
+
+```
+
+```{r}
+# 4. Get predictions on the test data
+preds <- predict(logreg, type = "response", 
+            newdata =  test_df)
+
+# 5. Set up the possible thresholds
+threshold <- seq(0, 1, .01)
+
+# 6. Test all the possible thresholds
+TPR <-  FPR <- err.rate <- rep(0, length(threshold))
+
+for (i in seq_along(threshold)) {
+Yhat <- rep(NA_character_, nrow(test_df)) 
+Yhat <-  ifelse(preds >= threshold[[i]], "yes", "no")
+
+err.rate[i] <- mean(Yhat != test_df$survived)
+TPR[[i]] <- sum(Yhat == "yes" & test_df$survived == "yes") /
+  sum(test_df$survived == "yes")
+FPR[[i]] <- sum(Yhat == "yes" & test_df$survived == "no") /
+  sum(test_df$survived == "no")
+}
+
+# 7. Show results
+Yhat <- ifelse(preds >= threshold[which.min(err.rate)], "yes", "no")
+min(err.rate)
+threshold[which.min(err.rate)]
+table(Yhat, test_df$survived)
+```
+
+The threshold that minimizes the prediction error classification rate for the testing data is 0.41
+
+\(b\) In class, we deleted `fare` and `embarked` from the logistic regression model.
+Add them back into the model using the just created training and testing data.
+Describe the results of adding the two variables with respect to the threshold and the optimal prediction error classification rate?
+Which model would you recommend and why.
+
+```{r}
+
+#| warnings: false
+#| message: false
+
+
+# 3. Run the full model on the training data
+train_df_full <- titanic[Z, ]
+test_df_full <- titanic[-Z, ]
+
+logreg_full <- glm(as.factor(survived) ~ age + gender + class + fare + embarked, 
+              data = train_df_full, family = "binomial")
+summary(logreg_full)
+
+# 4. Get predictions on the test data
+preds_full <- predict(logreg_full, newdata =  test_df_full, type = "response")
+
+# 5. Set up the possible thresholds
+threshold <- seq(0, 1, .01)
+
+# 6. Test all the possible thresholds
+TPRf <-  FPRf <- err.rate_f <- rep(0, length(threshold))
+
+for (i in seq_along(threshold)) {
+Yhat_full <- rep(NA_character_, nrow(test_df_full)) 
+Yhat_full <-  ifelse(preds_full >= threshold[[i]], "yes", "no")
+
+err.rate_f[i] <- mean(Yhat_full != test_df_full$survived)
+TPRf[[i]] <- sum(Yhat_full == "yes" & test_df_full$survived == "yes") /
+  sum(test_df_full$survived == "yes")
+FPRf[[i]] <- sum(Yhat_full == "yes" & test_df_full$survived == "no") /
+  sum(test_df_full$survived == "no")
+}
+
+# 7. Show results
+Yhat_full2 <- ifelse(preds_full >= threshold[which.min(err.rate_f)], "yes", "no")
+min(err.rate_f)
+threshold[which.min(err.rate_f)]
+table(Yhat_full2, test_df_full$survived)
+```
+
+The addition of two variables did not significantly decrease the prediction error classification rate of the full model from the reduced.
+However, this resulted in a decrease in the threshold for the full model.
+Based on the threshold that minimizes the prediction error classification I would recommend the reduced model as it accounts for higher threshold as compared to the full model.
+Similarly, the TPR (81%) is higher for the reduced model while the FNR (19%) is also lower.
+Meanwhile both TNR (85%) and FPR (15%) are similar, which makes the reduced model better than the full model.
+However, in terms of general model performance, the full model performed better than the reduced model when we compare the AIC and residual deviance.
+
+\(c\) Generate a single plot showing the error rate curves for both models.
+Use color to differentiate the curves and label (in the title or by other means).
+Interpret the plot to answer if either model is vastly better than the other.
+
+\(d\) STAT 627 Only: Create a tibble/data frame with three columns: the true positive rates for the two models, the false positive rate for the two models and a third column of text identifying the two models.
+
+```{r}
+#| echo: fenced
+#| include: true
+df <- tibble(TPR_A = c(TPR, TPRf), FPR_A = c(FPR, FPRf)) |>
+  mutate(curve = c(
+    rep("Reduced", length(TPR)),
+    rep("Full", length(TPRf))
+  )
+)
+```
+
+Generate a single plot with the ROC curves for the two models.
+Interpret the plot to answer if either model is much better than the other.
+
+```{r}
+ggplot(df,
+       aes(x = FPR_A, y = TPR_A, color = curve)) + 
+  geom_point() +
+  geom_abline(color = "red", lty = 2) +
+  theme_bw()
+```
+
+The ROC plot shows that the full model performs better that the reduced model.
+The area under the curve for the full is significantly more than that of the reduced model.
+
+------------------------------------------------------------------------
+
+# Stock Market Prediction
+
+Page 193, chap.
+4, #13 (selected questions).
+
+We want to predict the behavior of the stock market in the following week.
+The `Weekly` data set, (from the {ISLR2} package), contains 1,089 observations with the following 9 variables.
+
+-   `Year`: The year that the observation was recorded
+-   `Lag1`: Percentage return for previous week
+-   `Lag2`: Percentage return for 2 weeks previous
+-   `Lag3`: Percentage return for 3 weeks previous
+-   `Lag4`: Percentage return for 4 weeks previous
+-   `Lag5`: Percentage return for 5 weeks previous
+-   `Volume`: Volume of shares traded (average number of daily shares traded in billions)
+-   `Today`: Percentage return for this week
+-   `Direction`: A factor with levels `Down` and `Up` indicating whether the market had a positive or negative return on a given week
+
+(a) Use all the data as training data and perform a logistic regression with `Direction` as the response and the five lag variables plus `Volume` as predictors. Do any of the predictors appear to be statistically significant? If so, which ones?
+
+```{r}
+library(ISLR2)
+
+weekly <- Weekly |>
+  select(
+    contains("Lag"), Volume, Direction
+  )
+
+logreg2 <- glm(Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume, 
+               data = weekly, family = "binomial")
+
+summary(logreg2)
+```
+
+Lag2 is statistically significant because it has a pvalue of 0.0296
+
+(b) Compute the confusion matrix and overall fraction of *correct* predictions. Explain what the confusion matrix is telling you about the types of mistakes made by the logistic regression model.
+
+```{r}
+
+preds_mod2 <- predict(logreg2, type = "response")
+
+threshold <- seq(0, 1, .01)
+
+
+TPR_mod2 <-  FPR_mod2 <- err.rate_mod2 <- rep(0, length(threshold))
+
+for (i in seq_along(threshold)) {
+Yhat_mod2 <- rep(NA_character_, nrow(weekly)) 
+Yhat_mod2 <-  ifelse(preds_mod2 >= threshold[[i]], "Up", "Down")
+
+err.rate_mod2[i] <- mean(Yhat_mod2 != weekly$Direction)
+TPR_mod2[[i]] <- sum(Yhat_mod2 == "Up" & weekly$Direction == "Up") /
+  sum(weekly$Direction == "Up")
+FPR_mod2[[i]] <- sum(Yhat_mod2 == "Down" & weekly$Direction == "Down") /
+  sum(weekly$Direction == "Down")
+}
+
+
+which.min(err.rate_mod2)
+Yhat_mod2_t <- ifelse(preds_mod2 >= threshold[which.min(err.rate_mod2)], "Up", "Down")
+confusionmat <- table(Yhat_mod2_t, weekly$Direction)
+
+confusionmat
+
+accuracy <- sum(confusionmat[1], confusionmat[4])/sum(confusionmat)
+accuracy
+```
+
+```{r}
+table(weekly$Direction) 
+```
+
+The logistic regression model incorrectly predicted that they were 30 negative (Down) and 444 positive (Up) weekly market returns.
+The proportion of actual positive weekly market returns predicted by the model was 56% while negative weekly return was 57%.
+
+(c) Fit a logistic regression model with `Lag2` as the only predictor using as training data the period from 1990 to 2007 (inclusive). Compute the confusion matrix and the overall fraction of correct predictions for the held out test data (that is the data from 2008, 2009, and 2010). How does it compare to before? What does that suggest?
+
+```{r}
+
+Weekly |>
+  filter(Year %in% c(1990:2007)) |>
+  select(Lag2, Direction) -> training
+
+Weekly |>
+  filter(Year %in% c(2008:2010)) |>
+  select(Lag2, Direction) -> testing
+  
+
+logreg3 <- glm(Direction ~ Lag2, data = training, family = "binomial")
+summary(logreg3)
+```
+
+```{r}
+preds_mod3 <- predict(logreg3, newdata = testing, type = "response")
+
+# Set up the possible threshold
+threshold <- seq(0, 1, .01)
+
+# Test all the possible thresholds
+TPR_mod3 <-  FPR_mod3 <- err.rate_mod3 <- rep(0, length(threshold))
+
+for (i in seq_along(threshold)) {
+Yhat_mod3 <- rep(NA_character_, nrow(testing)) 
+Yhat_mod3 <-  ifelse(preds_mod3 >= 0.5, "Up", "Down")
+
+err.rate_mod3[i] <- mean(Yhat_mod3 != testing$Direction)
+TPR_mod3[[i]] <- sum(Yhat_mod3 == "Up" & testing$Direction == "Up") /
+  sum(testing$Direction == "Up")
+FPR_mod3[[i]] <- sum(Yhat_mod3 == "Down" & testing$Direction == "Down") /
+  sum(testing$Direction == "Down")
+}
+
+
+which.min(err.rate_mod3)
+Yhat_mod3_t <- ifelse(preds_mod3 >= threshold[which.min(err.rate_mod3)], "Up", "Down")
+confusionmat2 <- table(Yhat_mod3_t, testing$Direction)
+
+confusionmat2
+
+accuracy <- sum(confusionmat2[1], confusionmat2[4])/sum(confusionmat2)
+accuracy
+```
+
+Splitting the data into training and testing and using only Lag2, as the predictor significantly improved the performance this model as compared to using the entire dataset and more predictors.
+The proportion of actual positive weekly market returns predicted by the model was 61% while negative weekly market return was 56%.
+Overall, it suggest the need for utilizing important predictors in developing our models as less important predictors could truncate the performance our model.
+It also suggest the impact of different time frame in predicting market outcomes.
+
+(c) Plot an ROC curve for the logistic regression on the test data from (c), using different probability thresholds and add an abline for FPR = TPR (colored red). Interpret the plot in terms of how useful the model might be.
+
+```{r}
+# (d)
+
+# Set up the possible threshold
+threshold3 <- seq(from = 0, to = 1, length.out = 100)
+
+tpr <- fpr <- rep(NA_real_, 100)
+
+for (k in 1:100) {
+  Yhatmod3 <- rep(NA_character_, nrow(testing)) 
+  Yhatmod3 <- ifelse(preds_mod3 >= threshold3[[k]], "Up", "Down") 
+  tpr[k] <- sum(Yhatmod3 == "Up" & testing$Direction == "Up") / sum(testing$Direction == "Up") 
+  fpr[k] <- sum(Yhatmod3 == "Up" & testing$Direction == "Down") / sum(testing$Direction == "Down")
+}
+  
+  
+ggplot(tibble(tpr,fpr),
+       aes(fpr, tpr)) + 
+  geom_point() +
+  geom_abline(color = "red", lty = 2) +
+  theme_bw()
+```
+
+The model isn't particularly useful in classifying the weekly market returns.
+This is because the area under the curve is minimal and there are no clear distinct pattern of discrimination between true positive rate and false positive rates.
