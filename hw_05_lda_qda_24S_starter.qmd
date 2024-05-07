@@ -1,0 +1,518 @@
+---
+title: "STAT-427/627 Homework 5: Generative Models LDA QDA"
+subtitle: "Name:Roland Abi Course:STA 627"
+number-sections: true
+format:
+  html:
+    toc: true
+    toc-depth: 1
+    embed-resources: true
+---
+
+# LDA v QDA
+
+\(a\) Compare the expected performance of LDA and QDA on the training set versus the test set if the true Bayes decision boundary separating the categories is *linear*.
+
+**Training set:** In LDA we always assumes the boundaries are linear.
+Therefore if the Bayes decision boundary is linear, LDA will perform well on the training set.
+QDA other hand while having a quadratic decision boundary can still fit the training set, potentially even better than LDA if the training set is large enough.
+
+**Testing set:** Giving that the Bayes decision boundary is linear, LDA should generalize well to the test set and the performance should be significantly equivalent to the training set.
+Since QDA assumes quadratic decision boundary, it might not generalize as well as LDA to the test set when the Bayes decision boundary is linear.
+
+\(b\) Compare the expected performance of LDA and QDA on the training set versus the test set if the true Bayes decision boundary is *non-linear*.
+
+**Training set:** LDA assumes a linear decision boundary.
+If the true Bayes decision boundary is non-linear, LDA may not fit the training data as well because of its linear decision boundary assumption.
+However because QDA assumes a quadratic decision boundary.
+If the true Bayes decision boundary is non-linear, QDA will fit the training data better than LDA because its more flexible.
+
+**Testing set:** Given the Bayes decision boundary is non-linear LDA may not generalize well to the test.
+The performance on the test set would be lower as the model assumption do not align.
+Meanwhile QDA is expected to perform better because QDA assumes a quadratic decision boundary.
+
+\(c\) In general, as the sample size $n$ increases, do we expect the *test prediction accuracy* of QDA relative to LDA to improve, decline, or be unchanged?
+Why?
+
+QDA is more flexible than LDA and expected to capture wider range of data patterns.
+As such, if the sample size $n$ increases, we expect the test prediction accuracy of QDA to improve relative to LDA because we have more information to accurately estimate the parameters of the model and QDA can capture more complex decision boundaries.
+
+\(d\) **True or False**: If the Bayes decision boundary for a given problem is linear, we will probably achieve a superior *test error rate* using QDA rather than LDA because QDA is flexible enough to model a linear decision boundary.
+**Justify your answer.**
+
+**False:** Because generally we assume that the LDA decision boundary is linear.
+So if the Bayes decision boundary for a given problem is linear, we will achieve a superior test error rate using LDA rather than QDA despite QDA being more flexible.
+
+# Predicting Issuance of a Stock Dividend
+
+Suppose we wish to predict whether a given stock will issue a dividend this year ("Yes" or "No") based on last year's percent profit which we designate by $X$.
+
+We examine a large number of companies and discover:
+
+1.  The sample mean for percent profit for companies that issued a dividend was $\bar{X} = 20$, while the sample mean for those that didn't was $\bar{X} = 5$.
+2.  The sample variance of $X$ was the same for both sets of companies at $s^2 = 25$.
+3.  70% of companies issued dividends.
+
+Assume the percent profit $X$ follows a Normal($\mu, \sigma^2$) distribution.
+
+Use the estimated parameters $\bar{X}$ and $s^2$ to predict the probability a company with a last year's percent profit of $X = 10$ will issue a dividend this year.
+
+Hint: Use Bayes theorem with the [probability density function](https://simple.wikipedia.org/wiki/Probability_density_function) for a Normal random variable which is $f(x) = \frac{1}{\sigma \sqrt{2 \pi}} e^{\frac{−(x−\mu)^2}{2\sigma^2}}$.
+
+![](images/Q2.jpg){fig-align="center" width="466"}
+
+# Weekly Stock Market Predictions (or is it Weakly:))
+
+We want to continue trying to predict the behavior of the stock market in the following week.
+We computed a KNN estimate and a Logistic regression estimate already.
+We will now look at LDA and QDA using the {MASS} package and compare across these prediction methods.
+
+The `Weekly` data set, (from the {ISLR2} package), contains 1,089 observations with the following 9 variables.
+
+-   `Year`: The year that the observation was recorded
+-   `Lag1`: Percentage return for previous week
+-   `Lag2`: Percentage return for 2 weeks previous
+-   `Lag3`: Percentage return for 3 weeks previous
+-   `Lag4`: Percentage return for 4 weeks previous
+-   `Lag5`: Percentage return for 5 weeks previous
+-   `Volume`: Volume of shares traded (average number of daily shares traded in billions)
+-   `Today`: Percentage return for this week
+-   `Direction`: A factor with levels `Down` and `Up` indicating whether the market had a positive or negative return on a given week
+
+```{r}
+#| message: false
+library(tidyverse)
+library(MASS)
+library(ISLR2)
+
+train_df <- Weekly |>
+  filter(Year %in% c(1990:2007))
+
+test_df <- Weekly |>
+  filter(Year %in% c(2008:2010))
+```
+
+(a) Use LDA with a training data period from 1990 to 2007, with `Lag2` as the only predictor.
+    Compute the confusion matrix and the overall fraction of **correct predictions** for the held-out test data (that is, the data from 2008, 2009, and 2010).
+
+    ```{r}
+    table(train_df$Direction)
+    table(test_df$Direction)
+    ```
+
+    ```{r}
+    #LDA model
+
+    lda_result <- lda(Direction ~ Lag2, data = train_df)
+    lda_result
+
+    # Prediction
+    lda_pred <- predict(lda_result, newdata = test_df)
+
+    # Confusion matrix
+    confusionmatlda <- table(lda_pred$class, test_df$Direction)
+    confusionmatlda
+
+    # Correct classification prediction rate
+    accuracylda <- sum(confusionmatlda[1], confusionmatlda[4])/sum(confusionmatlda)
+    accuracylda
+    ```
+
+(b) Repeat (a) using QDA.
+
+    ```{r}
+    #QDA model
+    qda_result <- qda(Direction ~ Lag2, data = train_df)
+    qda_result
+
+    # predictions 
+    qda_pred <- predict(qda_result, newdata = test_df)
+
+    # Confusion matrix
+    confusionmatqda <- table(qda_pred$class, test_df$Direction)
+    confusionmatqda
+
+    # Correct classification prediction rate
+    accuracyqda <- sum(confusionmatqda[1], confusionmatqda[4])/sum(confusionmatqda)
+    accuracyqda
+    ```
+
+    ```{r}
+    #Logistic regression
+    logreg3 <- glm(Direction ~ Lag2, data = train_df, family = "binomial")
+    summary(logreg3)
+
+    # Predictions
+    preds_logit <- predict(logreg3, newdata = test_df, type = "response")
+
+    # conversion to classification
+    Yhat_logit <-  ifelse(preds_logit >= 0.5, "Up", "Down")
+
+    # Confusion matrix
+    confusionmatlogit <- table(Yhat_logit, test_df$Direction)
+    confusionmatlogit
+
+    # Correct classification prediction rate
+    accuracylogit <- sum(confusionmatlogit[1], confusionmatlogit[4])/sum(confusionmatlogit)
+    accuracylogit
+    ```
+
+    ```{r}
+    #KNN Model
+    library(class)
+
+    # Training and testing sets
+    Xtrain <- train_df["Lag2"]
+    Ytrain <- train_df$Direction
+    Xtest <- test_df["Lag2"]
+    Ytest <- test_df$Direction
+
+    # Predictions
+    Yhat_pred <- knn(train = Xtrain, test = Xtest, cl = Ytrain, k = 7) 
+
+    # Confusion matrix
+    confusionmatrix_knn <- table(Ytest, Yhat_pred)
+    confusionmatrix_knn
+
+    # Correct classification prediction rate
+    accuracy_knn <- sum(confusionmatrix_knn[1], confusionmatrix_knn[4])/sum(confusionmatrix_knn)
+    accuracy_knn
+    ```
+
+(c) Using the results from the solutions of prior homework for logistic regression (4), and KNN (3), compare the prediction correct classification rates of the four methods and recommend one or more methods.
+    Explain your rationale.
+
+    ```{r}
+
+    # Model performance comparison 
+
+    modelperf <- tibble(
+      "Metric" = c("Accurary", "TPR", "TNR", "FPR", "FNR"),
+      "LDA" = c(round(accuracylda,2), 0.54, 0.54, 0.46, 0.46),
+      "QDA" = c(round(accuracyqda,2), 0.54, 0, 0.46, 0),
+      "Logistic" = c(round(accuracylogit,2), 0.56, 0.58, 0.45, 0.42),
+      "KNN" = c(round(accuracy_knn,2), 0.70, 0.36, 0.30, 0.64)
+    )
+
+    modelperf
+    ```
+
+```{r}
+mean(test_df$Direction == "Up")
+```
+
+The table above shows the prediction classification rates of LDA, QDA, Logistic regression and KNN.
+Overall model accuracy was 54% for LDA, QDA and KNN and 55% for logistic regression.
+The average positive weekly market return in the test set was 53%.
+Our analysis showed that LDA, QDA and Logistic regression were consistent in predicting the proportion weeks that experienced positive market return as experienced weekly positive market returns except for KNN that predicted an usually high true positive rate.
+In conclusion I will recommend the logistic regression model and the LDA model respectively.
+Both models showed high overall accuracy in their overall prediction and a balanced and consistent true positive rate, false positive rates, true negative rates and false negative rates.
+While the QDA and KNN models although have significantly high accuracy in the prediction of correct classification, there appears to be imbalance in the prediction of true positive rates, false positive rate, true negative rates and false negative rates.
+
+# Crime in Boston
+
+Use the Boston data set from the {ISLR2} package.
+Use `?ISLR2::Boston` to look at the definitions of the 13 variables.
+(Be careful as {ISLR2} and {MASS} each have a `Boston` data set but {MASS} has 14 variable.)
+
+The goal is to fit classification models to predict whether a given suburb has a crime rate **at or above the median or below the median**.
+
+-   Create the response variable using the variables in the Boston data set.
+
+```{r}
+#| message: false
+library(tidyverse)
+library(ISLR2)
+glimpse(Boston)
+
+# create new binary variable based on the median crime rate across the suburbs
+Boston$high_crime <- Boston$crim >= median(Boston$crim, na.rm = 0)
+```
+
+Consider pairs plots for high crimes with predictors of interest.
+
+```{r}
+#| label: pairs-plots
+#| message: false
+#| layout-ncol: 2
+# Look at plots of the pairs of variables
+GGally::ggpairs(Boston[, c("high_crime", "crim", "age", "dis")])
+GGally::ggpairs(Boston[, c("high_crime", "zn", "nox", "rad")])
+```
+
+-   Use a logistic regression with response `high_crime` and a full model *using all the variables other than `crim`* to identify the most significant predictor variables ($p$-value \<= .1).
+
+    ```{r}
+
+    # Full logistic regression model 
+
+    logit_full <- glm(high_crime ~ zn + indus + chas + nox + rm + age + 
+                    dis + rad + tax + ptratio + lstat + medv, data = Boston, 
+                  family = "binomial")
+
+    summary(logit_full)
+    ```
+
+-   Fit a reduced model with only significant predictors and comment on the results.
+
+    ```{r}
+
+    # Reduced logistic regression model
+
+    logit_redu <- glm(high_crime ~ zn + nox + age + 
+                    dis + rad + tax + ptratio + medv, data = Boston, 
+                    family = "binomial")
+
+    summary(logit_redu)
+    ```
+
+`zn:` Areas with proportion of residential land zoned for lots of over 25,000sqft have a lower probability of experience high crime rate
+
+`nox:` Increasing the concentration of nitrogen oxide (parts per 10 million) will increase the probability of high crime rates
+
+`age:` Areas with proportion of owner-occupied units built prior to 1940 have a high probability of experiencing high crime rates
+
+`dis:` An increase in the weighted mean of distance to five Boston employment centers will increase high crime rate
+
+`rad:` Increasing the index of accessibility to radial highways will result in an increase in the probability of high crimes
+
+`tax:` Neighborhoods that experienced an increase in full-value property-tax rate per \$10,000 will see a decrease in the probability of high crime rates
+
+`ptratio:` An increase in pupil-teacher ratio by town will result in an increase in the probability of high crime rates
+
+`medv:` Areas where there is an increase in the median value of owner-occupied homes in \$1000s will see an increase in the probability of high crime rates.
+
+-   Create training and testing data with 50% split using 123 as a random number seed so your work is reproducible.
+
+```{r}
+set.seed(123)
+training_pct <- .50 
+
+Z <- sample(nrow(Boston), training_pct*nrow(Boston))
+
+boston_train <- Boston[Z, ]
+boston_test <- Boston[-Z, ]
+```
+
+Use the training data with the most significant predictor variables to build models using logistic regression, LDA, and QDA methods.
+Assess predictive performance using the correct classification rate with the testing data.
+
+-   Logistic Regression Model, Confusion Matrix, and Predictive Performance
+
+```{r}
+#Logistic regression model
+logit_boston <- glm(high_crime ~ zn + nox + age + 
+                dis + rad + tax + ptratio + medv, data = boston_train, 
+                family = "binomial")
+summary(logit_boston)
+
+# Predictions
+preds_logit_boston <- predict(logit_boston, newdata = boston_test, type = "response")
+
+# Convert to classification prediction
+Yhat_logit_boston <-  ifelse(preds_logit_boston >= 0.5, "TRUE", "FALSE")
+
+# confusion matrix
+confusionmatlogit_boston <- table(Yhat_logit_boston, boston_test$high_crime)
+confusionmatlogit_boston
+
+# Correct classification prediction rate
+accuracylogit_boston <- sum(confusionmatlogit_boston[1], 
+                     confusionmatlogit_boston[4])/sum(confusionmatlogit_boston)
+accuracylogit_boston
+```
+
+-   Use tuning to find the best threshold based on error rate.
+
+```{r}
+# Set up the possible thresholds
+threshold <- seq(0, 1, .01)
+
+# Test all the possible thresholds
+TPR <-  FPR <- err.rate <- rep(0, length(threshold))
+
+for (i in seq_along(threshold)) {
+Yhat <- rep(NA_character_, nrow(test_df)) 
+Yhat <-  ifelse(preds_logit_boston >= threshold[[i]], "TRUE", "FALSE")
+
+err.rate[i] <- mean(Yhat != boston_test$high_crime)
+TPR[[i]] <- sum(Yhat == "TRUE" & boston_test$high_crime == "TRUE") /
+  sum(boston_test$high_crime == "TRUE")
+FPR[[i]] <- sum(Yhat == "TRUE" & boston_test$high_crime == "FALSE") /
+  sum(boston_test$high_crime == "FALSE")
+}
+
+# Minimum error rate
+which.min(err.rate)
+
+# Best threshold
+threshold[which.min(err.rate)]
+
+# Results
+Yhat_boston <- ifelse(preds_logit_boston >= threshold[which.min(err.rate)], "TRUE", "FALSE")
+
+# Confusion matrix
+cfmboston_tuned <- table(Yhat_boston, boston_test$high_crime)
+cfmboston_tuned
+
+# Correct classification prediction rate
+acc_boston_tuned <- sum(cfmboston_tuned[1], 
+                     cfmboston_tuned[4])/sum(cfmboston_tuned)
+acc_boston_tuned
+```
+
+-   LDA Model, Confusion Matrix, and Predictive Performance.
+
+```{r}
+# LDA Model
+lda_boston <- lda(high_crime ~ zn + nox + age + 
+                dis + rad + tax + ptratio + medv, 
+                data = boston_train)
+lda_boston
+
+# Predictions
+lda_pred_boston <- predict(lda_boston, newdata = boston_test)
+
+# Confusion matrix
+cfmlda_boston <- table(lda_pred_boston$class, boston_test$high_crime)
+cfmlda_boston
+
+# Correct classification prediction rate
+acc_boston_lda <- sum(cfmlda_boston[1], cfmlda_boston[4])/sum(cfmlda_boston)
+acc_boston_lda
+```
+
+-   QDA Model, Confusion Matrix, and Predictive Performance.
+
+acc_boston_qda \<- sum(cfmqda_boston\[1\], cfmqda_boston\[4\])/sum(cfmqda_boston)
+
+acc_boston_qda
+
+```{r}
+# QDA model
+qda_boston <- qda(high_crime ~ zn + nox + age + 
+                dis + rad + tax + ptratio + medv, 
+                data = boston_train)
+qda_boston
+
+# Predictions
+qda_pred_boston <- predict(qda_boston, newdata = boston_test)
+
+# Confusion matrix
+cfmqda_boston <- table(qda_pred_boston$class, boston_test$high_crime)
+cfmqda_boston
+
+# Correct classification prediction rate
+acc_boston_qda <- sum(cfmqda_boston[1], cfmqda_boston[4])/sum(cfmqda_boston)
+acc_boston_qda
+```
+
+(b) Recap and summarize your findings. Rank the models (Logistic Regression, tuned Logistic Regression, LDA, QDA) in terms of the *correct* classification rate.
+
+```{r}
+modelperf2 <- tibble(
+  "model" = c("Logistic", "Tunned_Logistic", "LDA", "QDA"),
+  "Accuracy" = c(accuracylogit_boston, acc_boston_tuned, acc_boston_lda, acc_boston_qda),
+  "Rank" = order(Accuracy)
+) |> arrange(Rank)
+
+modelperf2
+```
+
+(b) Now build LDA and QDA models with all the data and use cross-validation to evaluate predictive performance. Comment on the results compared to the training and test set results.
+
+```{r}
+# LDA model
+lda_result_cv <-  lda(high_crime ~ zn + nox + age + 
+                dis + rad + tax + ptratio + medv, 
+                CV = TRUE, data = Boston)
+
+# Confusion matrix
+lda_cv <- table(lda_result_cv$class, Boston$high_crime)
+lda_cv
+
+# Correct classification prediction rate
+acc_boston_lda_cv <- sum(lda_cv[1], lda_cv[4])/sum(lda_cv)
+acc_boston_lda_cv
+```
+
+```{r}
+# LDA model
+qda_result_cv <-  qda(high_crime ~ zn + nox + age + 
+                dis + rad + tax + ptratio + medv, 
+                CV = TRUE, data = Boston)
+
+# Confusion matrix
+qda_cv <- table(qda_result_cv$class, Boston$high_crime)
+qda_cv
+
+# Correct classification prediction rate
+acc_boston_qda_cv <- sum(qda_cv[1], qda_cv[4])/sum(qda_cv)
+acc_boston_qda_cv
+```
+
+The predictive performance of the cross validation approach for LDA (86%) and QDA (88%) where similar to the results obtained for training and testing for both LDA and QDA models.
+
+(b) When you look at the data and its definitions, you may decide `rad` should be a factor, or remain a double.
+    It turns out the models in (a) with `rad` as a double outperform the models with `rad` as a factor.
+    The reduced model for Logistic Regression with `rad` as a double has seven predictors and the reduced model for logistic regression with `rad` as a factor only has three, without `rad`.
+    Would you recommend the model where `rad` is converted to a factor or not, and why?
+
+    Given the information available, I will recommend the full model with `rad` as double.
+    This is solely based on the performance of the full model.
+    In addition, `rad` appears to be an ordinal quantity rather than a nominal quantity which means it might be more appropriate to keep it as double.
+
+(c) STAT 627 Only: Explore KNN with the predictors from the reduced model to identify the best $k$ (range 1:50) and its correct classification rate.
+    Recommend a final model and explain your rationale.
+
+-   Hint: You can create the training data by using `names(lreg_fit$coefficients[-1])` to identify the predictor names from the reduced logistic regression model
+
+```{r}
+#| label: KNN
+#| message: false
+
+# get the names from the fitted logistic regression model data
+x_train <- boston_train[, names(logit_redu$coefficients[-1])]
+x_test <-  boston_test[, names(logit_redu$coefficients[-1])]
+y_train <- boston_train$high_crime
+y_test <-  boston_test$high_crime
+
+# Initialize data
+err_class_knn2 <- rep(1:50)
+tpr2 <- rep(1:50)
+fpr2 <- rep(1:50)
+
+for (k in 1:50) {
+  Yhat_knn <- knn(train = x_train, test = x_test, cl = y_train, k = k) 
+  err_class_knn2[k] <- mean(Yhat_knn != y_test) # The prediction is not correct
+  tpr2[k] <- sum(Yhat_knn == "TRUE" & y_test == "TRUE") / sum(y_test == "TRUE") # TP/P
+  fpr2[k] <- sum(Yhat_knn == "TRUE" & y_test == "FALSE") / sum(y_test == "FALSE") # FP/N
+}
+
+
+# optimal k which minimizes error_rate
+which.min(err_class_knn2)
+
+# associated error rate
+err_class_knn2[which.min(err_class_knn2)]
+```
+
+```{r}
+
+# predictions
+Yhat_knn_pred <- knn(train = x_train, test = x_test, cl = y_train, k = 1)
+
+# confusion matrix
+cfmknn <- table(Yhat_knn_pred, y_test)
+cfmknn
+
+# Correct classification prediction rate
+acc_knn <- sum(cfmknn[1], cfmknn[4])/sum(cfmknn)
+acc_knn
+
+mean(y_test == "TRUE")
+```
+
+The best $k$ which minimized the error rate is $1$ with and error rate of `r err_class_knn2[which.min(err_class_knn2)]`.
+I will recommend this model as the overall best performing model as it has the highest correct classification rate `r acc_knn` as compared to other models.
+In addition, both true positive rates (95%) and true negative rates (89%) were significantly higher, while the false positive and false negative rates were lower.
