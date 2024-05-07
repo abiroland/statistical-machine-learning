@@ -1,0 +1,229 @@
+---
+title: "Homework 2: Linear Regression"
+author: "Roland Abi; Course: STA 627"
+
+number-sections: true
+format:
+  pdf:
+    toc: false
+    toc-depth: 1
+    embed-resources: true
+---
+
+# Interpreting Least Squares Parameters (6 points)
+
+Suppose we have a data set with five predictors,
+
+-   $X1 =$ GPA,
+-   $X2 =$ IQ,
+-   $X3 =$ Gender (0 for Male, 1 for Female),
+-   $X4 =$ Interaction between GPA and IQ, and
+-   $X5 =$ Interaction between GPA and Gender.
+
+The response variable is starting salary after graduation (in thousands of dollars).
+
+Assume we use least squares to fit a model, and get
+
+-   $\beta_0 = 60$, $\beta_1 = 20$, $\beta_2 = 0.07$,
+-   $\beta_3 = 12$, $\beta_4 = 0.01$, $\beta_5 = -4$.
+
+(a) Write out the formula for the overall model and then two formulas: one for Males and one for Females and simplify both to combine all like terms. Use those to answer which of the following statements is most correct and why?
+
+**Full Model:**
+
+$\widehat{salary}$ $=$ $\beta_0 + \beta_1X_{GPA} + \beta_2X_{IQ} + \beta_3X_{Gender} + \beta_4X_{GPA*IQ} - \beta_5X_{GPA*Gender}$
+
+$\widehat{salary} = 60 + 20*{GPA} + 0.07*IQ + 12*Gender + 0.01*GPA*IQ - 4*GPA*Gender$
+
+**Female Model:**
+
+$\widehat{salary}$ $=$ $\beta_0 + \beta_1X_{GPA} + \beta_2X_{IQ} + \beta_3X_{Female} + \beta_4X_{GPA*IQ} - \beta_5X_{GPA*Female}$
+
+$\widehat{salary} = 60 + 20*{GPA} + 0.07*IQ + 12*Female + 0.01*GPA*IQ - 4*GPA*Female$
+
+**Male Model:**
+
+$\widehat{salary}$ $=$ $\beta_0 + \beta_1X_{GPA} + \beta_2X_{IQ} + \beta_3X_{Male} + \beta_4X_{GPA*IQ} - \beta_5X_{GPA*Male}$
+
+$\widehat{salary} = 60 + 20*{GPA} + 0.07*IQ + 12*Male + 0.01*GPA*IQ - 4*GPA*Male$
+
+i.  For a fixed value of IQ and GPA, males earn more on average than females.
+
+ii. For a fixed value of IQ and GPA, females earn more on average than males.
+    **TRUE (Because for a fixed IQ and GPA lets assume this values are zeros then their coefficients will be zero and every other interaction with them will be zero as well. But the response for being female is one)**
+
+    $\widehat{salary} = \beta_0 + \beta_{Female_1}$ $\implies$ $\widehat{salary} = 60 + 12 = 72$
+
+    While male is code as 0
+
+    $\widehat{salary} = \beta_0 + \beta_{Male_0}$ $\implies$ $\widehat{salary} = 60 + 0 = 60$
+
+iii. For a fixed value of IQ and GPA, females earn more on average than males if the GPA is high enough.
+
+iv. For a fixed value of IQ and GPA, males earn more on average than females if the GPA is high enough.
+
+<!-- -->
+
+(b) Predict the salary of a female with IQ of 120 and a GPA of 4.0.
+
+    $\widehat{salary} = 60 + 20*{4} + 0.07*{120} + 12*{1} + 0.01*{120*4} - 4*{1*4}$
+
+    $\widehat{salary} = 149.2$
+
+(c) **True or False**: Since the coefficient for the GPA/IQ interaction term is very small, there is very little evidence of an interaction effect.
+    Justify your answer.
+    **False**
+
+    The magnitude of an interaction does not necessarily justify evidence of an interaction effect.
+    The size of an interaction term simply gives us an idea of the size of this effect.
+    The evidence of an interaction effect can be determined by a hypothesis test.
+
+(d) 627 Only.
+    Use the formula for a simple regression line, $y=\hat{\beta}_0+ \hat{\beta}_1 x$, to show that in the case of simple linear regression, the least squares line *always* passes through the point of the sample averages $(\bar{x},\bar{y})$.
+
+-   Hint: To verify if a given point $x=\bar{x}$ and $y=\bar{y}$ is on a given line, plug in the coordinates of the point into the equation of the line and see if the resulting equation is true.
+
+    ![](images/d_question-01.jpg)
+
+# Training and Test Error Sums of Squares (4 Points)
+
+A set of data ($n = 100$ observations) has a single predictor and a quantitative response.
+I then fit a linear regression model to the data, to include a separate cubic regression, i.e.,
+
+$$Y = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + \epsilon.$$
+
+a.  Suppose the *true but unknown* relationship between $Y$ and $X$ is actually linear, i.e., $Y = \beta_0 + \beta_1X$.
+
+-   Consider the **training** error sum of squares (SSErr) for the linear regression, and the **training** SSErr for the cubic regression. Would we expect one to be lower than the other, would we expect them to be the same, or is there not enough information to tell? Justify your answer.
+
+b.  Answer (a) using **test** SSE rather than training SSE.
+
+    If the true relationship between $Y$ and $X$ is linear, then we would expect the test Sum of Squares Error (SSErr) for the linear regression and cubic regression to be approximately the same.
+    This is because if they exist a true linear relationship, then the linear model is the correct specification and adding additional cubic term does not help reduce the error on the testing data.
+    In practice however, this may not be the case as the cubic model is more flexible to capture random noise in the data which could lead to a significant drop in the model performance.
+
+c.  Suppose the *true but unknown* relationship between $X$ and $Y$ is **not** linear, but we don't know how far it is from linear.
+    Consider the **training** SSErr for the linear regression, and also the **training** SSErr for the cubic regression.
+    Would we expect one to be lower than the other, would we expect them to be the same, or is there not enough information to tell?
+    Justify your answer.
+
+d.  Answer (c) using **test** SSE rather than training SSErr.
+
+    If the true but unknown relationship between $X$ and $Y$ is non-linear, the cubic regression model which has more flexibility for capturing non-linear patterns will have a lower test Sum of Squares SSErr.
+    However, this is dependent on how well the model generalizes to new data.
+
+# Carseats Models (10 Points)
+
+Use the {ISLR2} package and the `Carseats` data set.
+
+```{r}
+#| message: false
+library(tidyverse)
+library(ISLR2)
+```
+
+-   Look at the data, e.g., with `glimpse()` and `summary()` in R.
+
+```{r}
+data("Carseats")
+glimpse(Carseats)
+summary(Carseats)
+```
+
+-   Select(subset) the data to just the variables `Sales`, `Price`, `Urban`, and `US`, and create a set of bivariate pairs plots using `GGally::ggpairs()`.
+-   Interpret the plots for `Sales` with respect to the other variables.
+
+```{r}
+#| message: false
+#| label: fig-plot1
+#| fig-cap: scatter plot matrix 
+#| layout-align: center
+
+sampledf <- Carseats |>
+  select(Sales, Price, Urban, US)
+
+GGally::ggpairs(sampledf[c("Sales", "Price", "Urban", "US")]) +
+  theme_bw()
+```
+
+@fig-plot1 shows the correlation matrix between sales and other selected variables.
+We observed a negative linear relationship between sales and price, having a correlation of (-0.445).
+The relationship between sales and urban shows that on average sales in urban and rural areas were similar.
+However, they were some unusual high sales (outliers) in the urban location.
+On average, sales in the US was significant higher than sales outside the US.
+
+(a) Fit a multiple regression model to predict `Sales` using predictors `Price`, `Urban`, and `US`.
+
+```{r}
+
+reg1 <-  lm(Sales ~ Price + Urban + US, data = sampledf)
+```
+
+(b) Use `summary()` and interpret each coefficient in the model with respect to the model. Consider the variable types and their units of measure!
+
+```{r}
+summary(reg1)
+```
+
+$Intercept:$ represents the average sale of child car seats at 400 different stores.
+
+$Price:$ For a unit increase in car seats charges at each site, average sales decreases by 0.05 thousand if country of sale and location remains the same
+
+$UrbanYes:$ On average child car seats sales in urban location is 0.02 thousand less than in rural location given all other sales characteristics of child car seats sales remains the same.
+
+$USYes:$ On average child car seats sales in the US is 1.20 thousand more than outside the US given all other sales characteristics of child car seats sales remains the same.
+
+(c) Write out the model in equation form with the fitted (estimated) parameters.
+
+    $\widehat{Sales} = 13.04 - 0.05*Price - 0.02*UrbanYes + 1.20*USYes$
+
+(d) What is the Null hypothesis for the predictors and for which of the predictors can you reject the null hypothesis and why?
+
+    $H_0 = \beta_0 = \beta_Price = \beta_{UrbanYes} = \beta_{USYes} = 0$
+
+    We will reject the null hypothesis for $Price$, and $USYes$ because the pvalues (\<2e-16, 4.86e-06) are extremely small and it would be highly unlikely for us to obtain the test statistics (-10.389, 4.635) of this magnitude if the null hypothesis were true.
+
+(e) On the basis of your response to the previous question, fit a reduced model with only the predictors for which there is evidence of an association with the response.
+
+    ```{r}
+    reduced <- lm(Sales ~ Price + US, data = sampledf)
+    summary(reduced)
+    ```
+
+(f) Use an analysis of variance, e.g., `anova()`, to compare how well the models in (a) and (e) fit the data?
+    What is the Null hypothesis?
+    Interpret the results of the comparison.
+
+    $H_0 = E(Sales) = \beta_0 + \beta_{Price} + \beta_{USYes}$
+
+    ```{r}
+    stats::anova(reduced, reg1)
+    ```
+
+    The result of the comparison shows that the reduced model fits the data better than the full model.
+    Given a Pvalue of 0.9357 we lack sufficient evidence to reject he null hypothesis.
+
+(g) Using the reduced model from (e), obtain 95% confidence intervals for the coefficient(s), e.g., using `confint()` or `broom::tidy()` in R.
+    Use the meaning of a confidence interval to interpret the results (without using the word "confident").
+
+    ```{r}
+    broom::tidy(reduced, conf.int = .95)
+    ```
+
+    If we obtain repeated samples for the price company charges for car seats at each site from the same population, 95% of the time, a one unit increase in price is associated with an average decrease in sales between -0.065, and -0.044 thousand.
+    Similarly, if the store was located in the US, 95% of the time, the average sales increases between 0.691, and 1.708 thousand.
+
+    \newpage
+
+(h) Show multiple plots useful to examine the residuals, e.g., using `plot()` in R.
+    Interpret specific plots to assess if there is evidence of extreme values (outliers) or high leverage observations in the model from (e)?
+
+    ```{r}
+    #| layout-ncol: 2
+    plot(reduced)
+    ```
+
+The residuals vs fitted plot indicates linearity of our model as residuals are largely centered around zero.
+While the normal Q-Q plot exhibit characteristics consistent with true normality.
+Similarly there are no unusual pattern to the distribution residuals observed in the scale-location plot which indicates the assumption of constant variance is holds true.
+There is no indication of influential observations however they are exists some outliers as shown in the residual vs leverage plot.
