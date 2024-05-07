@@ -1,0 +1,491 @@
+---
+title: "STAT-427/627 Homework #8"
+subtitle: "Name:___________________________ Course__________"
+number-sections: true
+format:
+  pdf:
+    embed-resources: true
+---
+
+# Multicollinearity
+
+Consider the following references for this problem.
+
+-   RStudio help for `runif` and `rnorm`.
+-   [Continuous Uniform Distribution](https://en.wikipedia.org/wiki/Continuous_uniform_distribution)
+-   [Variance of Random Variables](https://en.wikipedia.org/wiki/Variance)
+-   [Covariance of Random Variables](https://en.wikipedia.org/wiki/Covariance)
+-   [Correlation of Random Variables](https://en.wikipedia.org/wiki/Correlation)
+
+\(a\) Perform the following commands in R to generate 100 sets of data for variables $x_1$ and $x_2$ so they are correlated:
+
+```{r include=FALSE}
+library(tidyverse)
+```
+
+```{r}
+#| echo: fenced
+#| label: create-data
+#| include: true
+#| eval: true
+set.seed(123)
+n <- 100
+x1 <- runif(n)
+x2 <- 0.5 * x1 + rnorm(n) / 10
+y <- 2 + 3 * x1 + 0.2 * x2 + rnorm(n)
+```
+
+The last line corresponds to creating a linear model in which $y$ is a function of $x_1$ and $x_2$.
+
+-   What are the *true* regression coefficients?
+
+    $\hat{\beta_0} = 2$, $\hat{\beta_1} = 3$, $\hat{\beta_2} = 0.2$
+
+-   Write out the *true* linear model as $y$ as a function of $\bf{x}$.
+
+    $\hat{y} = 2 + 3x_1 + 0.2x_3$
+
+\(b\) Given we know the true relationship,...
+
+-   Use the formula for the variance of a Continuous Uniform Random Variable, $\text{Var}(x_1) = \frac{1}{12}(b-a)^2$, to calculate the *true* variance of $x_1$ as a number.
+
+    ```{r}
+    b = 3 
+    a = 2
+    var_x1 <- (1/12)*(b-a)^2
+    var_x1
+    ```
+
+-   Since $x_2$ is the sum of two random variables of known variances, calculate its *true* variance as a number.
+
+    $let$ ${x_2} = x_1 + y$
+
+    $var(x_2) = var(x_1) + var(y) + 2*cov(x_1, y)$
+
+    ```{r}
+    var_x2 <- var(x1) + var(y) + 2*cov(x1, y) 
+    var_x2
+    ```
+
+-   Use the definition of Covariance to calculate the *true* covariance of $x_1$ and $x_2$ as a number.
+
+    $cov(x_1, x_2) = E[(x_1- E[x_1])*(x_2 - E[x_2])]$
+
+    ```{r}
+    n = length(x1)
+
+    cov_x1_x2 <- sum((x1 - mean(x1))*(x2 - mean(x2)))/n
+    cov_x1_x2
+    ```
+
+-   Use the formula for Correlation, $\text{Corr}(x_1,x_2) =\frac{\text{Cov}(x_1,x_2)}{\text{std}(x_1)\text{std}(x_2)}$ to calculate the *true* correlation between $x_1$ and $x_2$ as a number.
+
+    ```{r}
+    std_x1 <- sqrt(var(x1))
+    std_x2 <- sqrt(var(x2))
+    corr_x1_x2 <- cov_x1_x2/(std_x1 * std_x2)
+    corr_x1_x2
+    ```
+
+-   Use the R function `corr()` to calculate the *sample* correlation between $x_1$ and $x_2$?
+
+    ```{r}
+    samp_corr <- cor(x1, x2)
+    samp_corr
+    ```
+
+-   Create a scatter plot displaying the relationship between $x_1$ and $x_2$.
+
+    ```{r}
+    tibble(x1, x2) |>
+      ggplot(aes(x1, x2)) +
+      geom_point() +
+      theme_bw()
+    ```
+
+-   Comment on the true versus sample correlation coefficients and the scatter plot.
+
+    Both true (0.8151) and sample (0.8234) correlation coefficients shows strong positive linear correlation between x1 and x2 and this relationship is highlighted in the scatter plot above.
+
+\(c\) Using this data, fit a least squares regression to predict `y` using `x1` and `x2`.
+
+```{r}
+dat <- tibble(y = y, x1 = x1, x2 = x2)
+mod1 <- lm(y ~ x1 + x2, data = dat)
+tidyout0 <- broom::tidy(mod1, conf.int = TRUE, conf.level = .95)
+tidyout0
+```
+
+-   Interpret the results.
+
+    $2.0698$ is the average expected response variable when both $x_1$ and $x_2$ is zero
+
+    $3.3066$ = A one unit increase in $x_1$ is associated with a 3.3066 average increase in $y$
+
+    $-0.6510$ = A one unit increase in $x_1$ is associated with a $0.6510$ average decrease in $y$
+
+-   What is the model equation with $\hat{\beta}_0, \hat{\beta1},$ and $\hat{\beta}_2$?
+
+    $\hat{\beta_0} = 2.0698, \hat{\beta_1} = 3.3066, \hat{\beta_2} = -0.6510$
+
+-   Compare the true $\beta_0, \beta_1,$ and $\beta_2$ and estimated parameters for the model.
+
+    Both estimated parameters $\hat{\beta_0}$ and $\hat{\beta_1}$ are higher than true parameters $\hat{\beta_0}$ and $\hat{\beta_1}$ while true $\hat{\beta_2}$ is higher than estimated $\hat{\beta_2}$.
+
+-   Comment on the standard errors of the estimated parameters.
+
+    $\hat{\beta_0}stderror = 0.1902$ It shows that on average, the response variable $y$ will vary by 0.1902units across different samples.
+
+    $\hat{\beta_1}stderror = 0.5843$ It shows that on average, the $x_1$ deviates by 0.5843units from the regression line.
+
+    $\hat{\beta_2}stderror = 0.9798$ It shows that on average, $x_2$ deviates by 0.9798units from the regression line.
+
+-   Is there sufficient evidence to reject the null hypothesis $H0: \beta_1 = 0$?
+
+    Given a pvalue (1.54e-07) There's sufficient evidence to reject the null hypothesis that $\beta_1 = 0$
+
+-   How about the null hypothesis $H0: \beta_2 = 0$?
+
+    Given a pvalue (0.508) we lack sufficient evidence to reject the null hypothesis that $\beta_2 = 0$
+
+\(d\) Now fit a reduced model using least squares regression to predict `y` using only `x1`.
+Comment on your results, especially the standard error for the coefficient estimate.
+Can you reject the null hypothesis $H0: \beta_1 = 0$?
+
+```{r}
+reduced1 <- lm(y ~ x1, data = dat)
+tidyout1 <- broom::tidy(reduced1, conf.int = TRUE, conf.level = .95)
+tidyout1
+```
+
+The result of the reduced model shows that the average expected response variable $y$ is $\beta_0 = 2.0704$.
+Meanwhile, the response variable $y$ is estimated to increase on average by $\hat{\beta_1} = 2.9879$ for a unit increase in $x_1$.
+Furthermore, the result showed that the response variable $y$ will vary across samples by $\hat{\beta_0}stderror = 0.1902units$.
+The distance between the observations of $x_1$ and the fitted regression line is $\hat{\beta_1}stderror = 0.3306units$.
+Given a pvalue (1.5e-14) There's sufficient evidence to reject the null hypothesis that $\beta_1 = 0$
+
+\(e\) Now fit a least squares regression to predict `y` using only `x2`.
+Comment on your results, especially the standard error for the coefficient estimate.
+Can you reject the null hypothesis $H0: \beta_2 = 0$?
+
+```{r}
+reduced2 <- lm(y ~ x2, data = dat)
+tidyout2 <- broom::tidy(reduced2, conf.int = TRUE, conf.level = .95)
+tidyout2
+```
+
+The result of the reduced model (2) shows that the average expected response variable $y$ is $\beta_0 = 6048$.
+Meanwhile, the response variable $y$ is estimated to increase on average by $\hat{\beta_2} = 3.9148$ for a unit increase in $x_2$.
+Furthermore, the result showed that the response variable $y$ will vary across samples by $\hat{\beta_0}stderror = 0.1893units$.
+The distance between the observations of $x_2$ and the fitted regression line is $\hat{\beta_2}stderror = 0.6380units$.
+Given a pvalue (1.79e-08) There's sufficient evidence to reject the null hypothesis that $\beta_1 = 0$
+
+\(f\) Do the results obtained in (c) -- (e) contradict each other?
+Explain your answer.
+
+The results obtained from the `full model` and the two reduced model, generally contradict each other.
+The `reduced_model_1` minimized the estimated parameters and standard errors for both $\hat{\beta_0}stderror$ and $\hat{\beta_1}stderror$.
+However, conclusion for both `full model` and `reduced_model_1` are similar.
+Meanwhile, significant difference was observed between the `full_model` and `reduced_model_2`.
+The estimated coefficient $\hat{\beta_2}$ change in both magnitude and direction from negative to positive.
+while the standard error all decreased.
+Compared to the full model, the estimated coefficient was significantly different from zero in `reduced_model_2` .
+
+\(g\) Now suppose we obtain one additional observation, which was unfortunately mismeasured.
+Use the following R code.
+
+```{r}
+#| echo: fenced
+x1p <- c(x1, 0.1)
+x2p <- c(x2, 0.8)
+yp <- c(y, 6)
+
+dat2 <- tibble(y = yp, x1 = x1p, x2 = x2p)
+```
+
+Re-fit the linear models from (c) to (e) using this new data.
+What effect does this new observation have on each of the models?
+How do the slopes from all the considered models change given the newly added data point?
+
+```{r}
+#model1b with new dataset
+mod1b <- lm(y ~ x1 + x2, data = dat2)
+summary(mod1b)
+```
+
+```{r}
+library(broom)
+#reduced model 1b
+reduced1b <- lm(y ~ x1, data = dat2)
+summary(reduced1b)
+```
+
+```{r}
+# Reduced model 2b 
+reduced2b <- lm(y ~ x2, data = dat2)
+summary(reduced2b)
+```
+
+The from of the three models using the new data shows that the residual standard error of the `full_model2` and the `reduced1b` increased from .94 to .99 and .94 to .99 respectively.
+As a consequence, of the new data, coefficient of variation decreased from 44% in `full_model1` to 40% in `full_model2` similar trend was observed for `reduced_model1b`.
+While the `reduced_model2b` coefficient of variation increased.
+$\hat{\beta_1}$ and $\hat{\beta_2}$ for the `full_model` remained unchanged.
+$\hat{\beta_1}=2.8122$ for `reduced_model1b` decreased while $\hat{\beta_2} = 3.9606$ for `reduced_model2b` increased slightly in the new data compared to the old data respectively.
+
+Comparing the reduced models.
+
+\(h\) Examine standard errors of estimated $\beta$s in (c), (d), and (e)?
+Which models produce more stable estimates with smaller confidence intervals, and therefore more reliable estimates of the parameters?
+
+The `reduced_model1` and `reduced_model2` produced more stable estimates with smaller confidence intervals.
+
+\(i\) Compute both VIF for the full model by hand using the results from question (b) and then using full model compared to the reduced models with R.
+Relate them to your answer to question (h).
+
+```{r}
+vif1 <- 1/(1 - (samp_corr)^2)
+vif1
+```
+
+```{r}
+vif2 <- (tidyout0$std.error[2]^2)/(tidyout1$std.error[2]^2)
+vif2
+```
+
+```{r}
+vif2b <- (tidyout0$std.error[3]^2)/(tidyout2$std.error[2]^2)
+vif2b
+```
+
+Having $x_1$ in the model will inflate the variance of $x_2$ by 3.1
+
+\(j\) The two variance inflation factors in the previous question are close to each other and `car::vif()` provides the same value.
+Would this always be the case?
+Generalize to any linear regression model with $p = 2$ independent variables, either showing or disproving that $\text{VIF}_1 = \text{VIF}_2$.
+
+```{r}
+library(ISLR2)
+#using the boston  data
+corr_boston <- cor(Boston$rm, Boston$dis)
+corr_boston
+
+vif1_boston <- 1/(1 - (corr_boston)^2)
+vif1_boston
+```
+
+```{r}
+mod1boston_full <- lm(indus ~ rm + dis, data = Boston)
+mod1boston_reduced <- lm(indus ~ rm, data = Boston)
+mod1boston_reduced2 <- lm(indus ~ dis, data = Boston)
+tidyboston1 <- tidy(mod1boston_full)
+tidyboston2 <- tidy(mod1boston_reduced)
+tidyboston3 <- tidy(mod1boston_reduced2)
+
+vif2_boston_rd <- tidyboston1$std.error[2]^2/tidyboston2$std.error[2]^2
+vif2b_boston_rd <- tidyboston1$std.error[3]^2/tidyboston3$std.error[2]^2
+vif2_boston_rd
+vif2b_boston_rd
+```
+
+It is not always the case that $VIF1 = VIF2$.
+This often depends on the magnitude of the correlation between the two independent variables
+
+\(k\) Can your conclusion be extended to $p = 3$?
+Explain.
+
+```{r}
+# for p = 3
+mod_boston3 <- lm(indus ~ rm + dis + lstat, data = Boston)
+tidyboston4 <- tidy(mod_boston3)
+vif_boston3 <- car::vif(mod_boston3)
+vif_boston3
+
+mod_boston3_red <- lm(indus ~ lstat, data = Boston)
+tidyboston5 <- tidy(mod_boston3_red)
+vif3b_boston_rd <- tidyboston4$std.error[4]^2/tidyboston5$std.error[2]^2
+vif3b_boston_rd
+```
+
+Conclusion drawn from (j) also applies here
+
+# College Applications
+
+Predict the number of applications received based on the other variables in the College data set in {ISLR2}.
+
+-   Use `set.seed(123)` where appropriate and 50% split where appropriate.
+
+\(a\) Find the best least squares regression model, using adjusted R2, BIC, and Cp criteria, as well as the stepwise variable selection.
+Choose a model as your best model and justify your choice.
+
+```{r}
+#| message: false
+library(leaps)
+glimpse(College)
+```
+
+### Exhaustive search
+
+```{r}
+set.seed(123)
+rownames(College) <- NULL
+reg_ex <- regsubsets(Apps ~ ., data = College, nvmax = 17)
+summary(reg_ex)
+```
+
+Model selection
+
+```{r}
+reg_ex_summary <- summary(reg_ex)
+df <- data.frame(adjR2 = reg_ex_summary$adjr2, 
+                 nvar = 1:length(reg_ex_summary$adjr2))
+
+ggplot(df, (aes(nvar, adjR2))) +
+  geom_line(lwd =.5) +
+  theme_bw()
+```
+
+```{r}
+# Rsquared adjusted
+which.max(reg_ex_summary$adjr2)
+
+pred_names1 <- reg_ex_summary$which[13,][reg_ex_summary$which[13,] == TRUE][-1] |> 
+  names()
+pred_names1 <- pred_names1[2:13]
+
+my_formula1 <- str_c("Apps", 
+                    str_flatten(c(pred_names1, "Private"), collapse = " + "),
+                    sep=" ~ ")
+
+lm_rsquared <- lm(formula(my_formula1), data = College)
+summary(lm_rsquared)
+```
+
+```{r}
+# Using BIC
+round(reg_ex_summary$bic,0)
+which.max(reg_ex_summary$bic)
+which.min(reg_ex_summary$bic)
+
+reg_ex_summary$which[10,][reg_ex_summary$which[10,] == TRUE][-1]
+```
+
+```{r}
+pred_names <- reg_ex_summary$which[10,][reg_ex_summary$which[10,] == TRUE][-1] |> 
+  names()
+pred_names <- pred_names[2:10]
+pred_names
+```
+
+```{r}
+my_formula <- str_c("Apps", 
+                    str_flatten(c(pred_names, "Private"), collapse = " + "),
+                    sep=" ~ ")
+
+lm_bic <- lm(formula(my_formula), data = College)
+summary(lm_bic)
+```
+
+```{r}
+# Mallows Cp
+round(reg_ex_summary$cp, 2)
+which.max(abs(reg_ex_summary$cp - 1:17))
+which.min(abs(reg_ex_summary$cp - 1:17))
+
+names(reg_ex_summary$which[16,][reg_ex_summary$which[16,] == TRUE])[-1]
+```
+
+```{r}
+ggplot(data.frame(x = 1:17, Cp = reg_ex_summary$cp), aes(x, Cp)) +
+  geom_point() +
+  xlab("Number of variables in the model, including dummy variables") +
+  geom_abline(slope = 1, intercept  = 0, color = "red", lty = 2)  +
+  ylim(0, 17) + 
+  scale_x_continuous(breaks = seq(0, 16, by = 1)) +
+  theme_bw()
+```
+
+```{r}
+pred_names3 <- reg_ex_summary$which[16,][reg_ex_summary$which[16,] == TRUE][-1] |> 
+  names()
+pred_names3 <- pred_names3[2:16]
+
+my_formula3 <- str_c("Apps", 
+                    str_flatten(c(pred_names3, "Private"), collapse = " + "),
+                    sep=" ~ ")
+
+lm_cp <- lm(formula(my_formula3), data = College)
+summary(lm_cp)
+```
+
+### Sequential search
+
+```{r}
+reg_full <- lm(Apps ~ ., data = College)
+reg_null <- lm(Apps ~ 1, data = College)
+```
+
+```{r}
+step_outf <- step(reg_null, 
+                 scope = list(lower = reg_null, upper = reg_full),
+                 method = "forward", trace = 0)
+```
+
+```{r}
+summary(step_outf)
+```
+
+```{r}
+#Backward search
+step_outb <- step(reg_full, 
+                 scope = list(lower = reg_null, upper = reg_full),
+                 method = "backward", trace = 0)
+summary(step_outb)
+```
+
+Both backward and forward approach returned similar results while
+
+```{r}
+
+tibble(
+  Model_name = c('lm_resquared', 'lm_bic', 'lm_cp', 'step_outf'),
+  AIC = c(glance(lm_rsquared)$AIC, glance(lm_bic)$AIC, 
+          glance(lm_cp)$AIC, glance(step_outf)$AIC),
+  BIC = c(glance(lm_rsquared)$BIC, glance(lm_bic)$BIC, 
+          glance(lm_cp)$BIC, glance(step_outf)$BIC),
+  AdjRsq = c(glance(lm_rsquared)$adj.r.squared, glance(lm_bic)$adj.r.squared, 
+          glance(lm_cp)$adj.r.squared, glance(step_outf)$adj.r.squared),
+  noparams = c(glance(lm_rsquared)$df, glance(lm_bic)$df, 
+          glance(lm_cp)$df, glance(step_outf)$df)
+)
+```
+
+We will be selecting the `step_outf` model due to having the lowest overall AIC and BIC and significantly high r-squared adjusted
+
+\(b\) Evaluate prediction accuracy of your selected model, estimating the prediction mean-squared-error by some cross-validation method.
+
+```{r}
+set.seed(123)
+training_pct <- .50 
+
+Z <- sample(nrow(College), training_pct*nrow(College))
+
+college_train <- College[Z, ]
+college_test <- College[-Z, ]
+```
+
+```{r}
+set.seed(123)
+n <- nrow(college_test)
+Yhat <- rep(NA_real_, n)
+  for (i in 1:n) { # delete one at a time
+    reg <- lm(Apps ~ Accept + Top10perc + Expend + Outstate + 
+                Enroll + Room.Board + Top25perc + Private + PhD + Grad.Rate + 
+                F.Undergrad + P.Undergrad, data = college_train[-i, ])
+    Yhat[i] <- predict(reg, newdata = college_test[i ,])
+  }
+  mse <- mean((Yhat - college_test$Apps)^2)
+
+mse
+```
+
+**Save your results**, because we'll soon compare them against ridge regression, LASSO, PCR, and PLS.
